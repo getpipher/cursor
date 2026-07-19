@@ -1,0 +1,85 @@
+# @getpipher/cursor
+
+A [pi coding-agent](https://github.com/earendil-works/pi-coding-agent) extension that customizes the editor cursor and makes it **focus-aware** across terminal/multiplexer stacks.
+
+pi draws its own fake cursor (a reverse-video cell) and hides the real hardware cursor. That fake cursor has no "inactive" state and no configurability. `@getpipher/cursor` replaces the editor with a `CustomEditor` that render-transforms the cursor cell per your config and restyles it when the pane loses focus.
+
+## Install
+
+```bash
+pi install npm:@getpipher/cursor
+```
+
+Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
+
+## Features
+
+- **Focused styles:** `block` (pi native, default), `bar` (▎), `underline`.
+- **Unfocused styles:** `dim` (faint block, default), `outline` (▢), `underline`, `hide`.
+- **Blink** (opt-in, default off) — pauses when the pane is unfocused.
+- **Focus detection** via a pluggable `FocusProvider`:
+  - **tmux** — pane-focus-in/out hooks + `fs.watch` (push).
+  - **herdr** — herdr socket API events (push).
+  - **static** — always-focused fallback (bare terminal / unknown).
+- **`/cursor` panel** — the same `SettingsList` engine pi's native `/settings` uses, plus power-user subcommands.
+
+## `/cursor` command
+
+```
+/cursor                      # open the settings panel (TUI) or print status
+/cursor on | off             # master switch
+/cursor focused block|bar|underline
+/cursor unfocused dim|outline|underline|hide
+/cursor blink on [ms] | off  # ms ∈ {400,500,600,800,1000}
+/cursor provider auto|tmux|herdr|static
+/cursor status               # print config + active provider + detected env
+```
+
+Config persists to `~/.pi/agent/cursor.json` and survives restarts.
+
+## Focus providers
+
+### tmux (default for tmux users)
+
+Uses `tmux set-hook -p -t $TMUX_PANE pane-focus-in/out` to write focus state to a per-pane file, watched via `fs.watch`. **Requires** focus-events enabled in your tmux config:
+
+```conf
+# ~/.tmux.conf
+set -g focus-events on
+```
+
+If `focus-events` is off, the extension degrades gracefully to static mode and notifies you once.
+
+### herdr
+
+Uses herdr's local socket API (`session.snapshot` + `events.subscribe`); auto-detected when the herdr socket is present (`HERDR_SOCKET_PATH`, `HERDR_SESSION`, or `~/.config/herdr/herdr.sock`).
+
+> **⚠️ v0.1 herdr adapter is built from `herdr.dev/docs/socket-api` and unit-tested against a mocked socket, but not verified against a live herdr session.** Three constants (the our-own-pane-id env var, the `events.subscribe` event names, and the focus-event field name) are documented assumptions — confirm/adjust them in a real herdr pane with `env | grep -i herdr` and `herdr api schema --json`. See `lib/focus/herdr.ts`.
+
+### static (fallback)
+
+No multiplexer detected (bare Ghostty/Kitty/iTerm2/Alacritty, or unknown). The cursor styles still work; only the focus-aware behavior is inactive.
+
+> **Bare-terminal focus detection (DEC 1004) is not in v0.1** — pi 0.80.x doesn't enable `?1004h` or parse `\x1b[I`/`\x1b[O`. Tracked for a later release.
+
+## The char-hidden constraint
+
+A fake cursor *is* the cell — ANSI has no partial-cell overlay. So the **`bar`** (focused) and **`outline`** (unfocused) styles render a glyph that **hides the character at the cursor position** while the cursor sits on it; the character reappears when the cursor moves. This is a terminal limitation, not a bug. `block`, `underline`, `dim`, and `hide` preserve the character.
+
+## Compatibility
+
+- pi `@earendil-works/pi-coding-agent` and `@earendil-works/pi-tui` `^0.80.x` (peer deps `*`).
+- Node `>=20`.
+- macOS / Linux (Unix domain sockets). Windows herdr uses named pipes (untested).
+
+## Development
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test:run      # node:test via tsx
+```
+
+## License
+
+MIT © RECTOR
