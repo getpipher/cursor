@@ -1,0 +1,55 @@
+{
+  "name": "@getpipher/cursor",
+  "version": "0.1.0",
+  "description": "Focus-aware, customizable editor cursor for the pi coding agent (tmux + herdr; static fallback).",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "cursor",
+    "tmux",
+    "herdr",
+    "focus",
+    "tui"
+  ],
+  "license": "MIT",
+  "author": "RECTOR <rector@rectorspace.com>",
+  "homepage": "https://github.com/getpipher/cursor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getpipher/cursor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/getpipher/cursor/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/cursor.ts"
+    ]
+  },
+  "files": [
+    "extensions",
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test",
+    "test:run": "tsx --test"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "@types/node": "*",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  }
+}
