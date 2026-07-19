@@ -18,7 +18,7 @@ pnpm test:run      # node:test via tsx
 - `/cursor` — interactive settings panel (TUI) or text status
 - `/cursor on` / `/cursor off` — master switch
 - `/cursor focused block|bar|underline`
-- `/cursor unfocused dim|outline|underline|hide`
+- `/cursor unfocused dim|hollow|outline|underline|hide`
 - `/cursor blink on [ms] | off`
 - `/cursor provider auto|tmux|herdr|static`
 - `/cursor status`
@@ -46,7 +46,7 @@ pnpm test:run      # node:test via tsx
 
 ## Constraints
 
-- `bar` / `outline` cursor styles hide the char at the cursor position (a fake
+- `bar` / `hollow` / `outline` cursor styles hide the char at the cursor position (a fake
   cursor *is* the cell; ANSI has no partial-cell overlay). Reappears on move.
   Documented, not a bug.
 - tmux focus detection requires `set -g focus-events on` in `~/.tmux.conf`.

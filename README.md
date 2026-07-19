@@ -15,7 +15,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 ## Features
 
 - **Focused styles:** `block` (pi native, default), `bar` (▎), `underline`.
-- **Unfocused styles:** `dim` (faint block, default), `outline` (▢), `underline`, `hide`.
+- **Unfocused styles:** `hollow` (□ sharp hollow block, default), `outline` (▢ rounded), `dim` (faint block), `underline`, `hide`.
 - **Blink** (opt-in, default off) — pauses when the pane is unfocused.
 - **Focus detection** via a pluggable `FocusProvider`:
   - **tmux** — pane-focus-in/out hooks + `fs.watch` (push).
@@ -29,7 +29,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 /cursor                      # open the settings panel (TUI) or print status
 /cursor on | off             # master switch
 /cursor focused block|bar|underline
-/cursor unfocused dim|outline|underline|hide
+/cursor unfocused dim|hollow|outline|underline|hide
 /cursor blink on [ms] | off  # ms ∈ {400,500,600,800,1000}
 /cursor provider auto|tmux|herdr|static
 /cursor status               # print config + active provider + detected env
@@ -64,7 +64,7 @@ No multiplexer detected (bare Ghostty/Kitty/iTerm2/Alacritty, or unknown). The c
 
 ## The char-hidden constraint
 
-A fake cursor *is* the cell — ANSI has no partial-cell overlay. So the **`bar`** (focused) and **`outline`** (unfocused) styles render a glyph that **hides the character at the cursor position** while the cursor sits on it; the character reappears when the cursor moves. This is a terminal limitation, not a bug. `block`, `underline`, `dim`, and `hide` preserve the character.
+A fake cursor *is* the cell — ANSI has no partial-cell overlay. So the **`bar`** (focused) and **`hollow`**/**`outline`** (unfocused) styles render a glyph that **hides the character at the cursor position** while the cursor sits on it; the character reappears when the cursor moves. This is a terminal limitation, not a bug. `block`, `underline`, `dim`, and `hide` preserve the character.
 
 ## Compatibility
 

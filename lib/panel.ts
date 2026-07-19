@@ -35,7 +35,7 @@ export function panelRows(cfg: CursorConfig, activeProviderLabel: string): Setti
       label: "Unfocused style",
       currentValue: cfg.unfocusedStyle,
       values: [...UNFOCUSED_STYLES],
-      description: "Cursor shape when the pane is inactive. outline hides the char at the cursor.",
+      description: "Cursor shape when the pane is inactive. hollow (▢) hides the char at the cursor."
     },
     {
       id: "blink",

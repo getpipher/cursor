@@ -44,7 +44,14 @@ test("unfocused dim = dim+reverse", () => {
   );
 });
 
-test("unfocused outline = ▢ glyph, char hidden", () => {
+test("unfocused hollow = □ sharp hollow block, char hidden", () => {
+  assert.deepEqual(
+    transformUnfocused([line("f")], { ...DEFAULT_CONFIG, unfocusedStyle: "hollow" }),
+    [`const x = \x1b[38;5;8m□\x1b[39mawait;`],
+  );
+});
+
+test("unfocused outline = ▢ rounded hollow square, char hidden", () => {
   assert.deepEqual(
     transformUnfocused([line("f")], { ...DEFAULT_CONFIG, unfocusedStyle: "outline" }),
     [`const x = \x1b[38;5;8m▢\x1b[39mawait;`],

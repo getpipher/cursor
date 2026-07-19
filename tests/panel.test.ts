@@ -67,8 +67,14 @@ test("previewLine focused renders the sample with the focused style cursor", () 
 });
 
 test("previewLine unfocused renders the sample with the unfocused style cursor", () => {
-  // dim (default)
-  const dim = previewLine(() => DEFAULT_CONFIG, false);
+  // hollow (default) → □ sharp hollow block
+  const hollow = previewLine(() => DEFAULT_CONFIG, false);
+  assert.deepEqual(hollow.render(80), [`const result = await fetch(url);\x1b[38;5;8m□\x1b[39m`]);
+  // outline → ▢ rounded hollow square
+  const outline = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "outline" }), false);
+  assert.deepEqual(outline.render(80), [`const result = await fetch(url);\x1b[38;5;8m▢\x1b[39m`]);
+  // dim
+  const dim = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "dim" }), false);
   assert.deepEqual(dim.render(80), [`const result = await fetch(url);\x1b[2;7m \x1b[0m`]);
   // hide
   const hide = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "hide" }), false);

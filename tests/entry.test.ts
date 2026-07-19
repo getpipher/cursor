@@ -17,8 +17,10 @@ test("focused block|bar|underline", () => {
   assert.throws(() => parseCursorArgs(["focused", "weird"], DEFAULT_CONFIG));
 });
 
-test("unfocused dim|outline|underline|hide", () => {
+test("unfocused dim|hollow|outline|underline|hide", () => {
   assert.deepEqual(parseCursorArgs(["unfocused", "hide"], DEFAULT_CONFIG), { action: "set", patch: { unfocusedStyle: "hide" } });
+  assert.deepEqual(parseCursorArgs(["unfocused", "hollow"], DEFAULT_CONFIG), { action: "set", patch: { unfocusedStyle: "hollow" } });
+  assert.deepEqual(parseCursorArgs(["unfocused", "outline"], DEFAULT_CONFIG), { action: "set", patch: { unfocusedStyle: "outline" } });
 });
 
 test("blink on [ms] / off", () => {

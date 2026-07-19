@@ -43,10 +43,10 @@ test("focused + block → passthrough of wrapped render", () => {
   assert.deepEqual(ed.render(80), [`hi ${cell("f")}`]);
 });
 
-test("unfocused + dim → transform applied to wrapped render", () => {
+test("unfocused + hollow (default) → transform applied to wrapped render", () => {
   const { ed } = makeEditor(() => [`hi ${cell("f")}`]);
   ed.setFocus(false);
-  assert.deepEqual(ed.render(80), [`hi \x1b[2;7mf\x1b[0m`]);
+  assert.deepEqual(ed.render(80), [`hi \x1b[38;5;8m□\x1b[39m`]);
 });
 
 test("handleInput delegates to wrapped editor", () => {

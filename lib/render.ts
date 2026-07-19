@@ -21,10 +21,10 @@ function transformLine(line: string, fn: (ch: string) => string): string {
   return line.includes(CURSOR_MARKER) ? rewriteCursorCell(line, fn) : line;
 }
 
-// bar/outline glyphs in dim accent (256-color: 7 = light gray for bar, 8 = dark gray for outline).
-// cursorColor is theme-accent-only in v0.1; a fixed dim 256-color keeps it terminal-portable.
+// bar/hollow/outline glyphs in dim accent (256-color: 7 = light gray for bar, 8 = dark gray for hollow/outline).
 const BAR = "\u258E"; // ▎
-const OUTLINE = "\u25A2"; // ▢
+const HOLLOW = "\u25A1"; // □ sharp hollow block (matches focused block shape)
+const OUTLINE = "\u25A2"; // ▢ rounded hollow square
 
 function focusedCell(style: FocusedStyle, ch: string): string {
   switch (style) {
@@ -41,8 +41,10 @@ function unfocusedCell(style: UnfocusedStyle, ch: string): string {
   switch (style) {
     case "dim":
       return `\x1b[2;7m${ch}\x1b[0m`;
+    case "hollow":
+      return `\x1b[38;5;8m${HOLLOW}\x1b[39m`; // char hidden (sharp hollow block)
     case "outline":
-      return `\x1b[38;5;8m${OUTLINE}\x1b[39m`; // char hidden
+      return `\x1b[38;5;8m${OUTLINE}\x1b[39m`; // char hidden (rounded hollow square)
     case "underline":
       return `\x1b[4;2m${ch}\x1b[0m`;
     case "hide":

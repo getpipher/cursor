@@ -12,7 +12,7 @@ test("default config has expected shape", () => {
   assert.deepEqual(DEFAULT_CONFIG, {
     enabled: true,
     focusedStyle: "block",
-    unfocusedStyle: "dim",
+    unfocusedStyle: "hollow",
     blink: false,
     blinkRate: 600,
     focusProvider: "auto",
@@ -24,7 +24,7 @@ test("focused styles enum", () => {
 });
 
 test("unfocused styles enum", () => {
-  assert.deepEqual(UNFOCUSED_STYLES, ["dim", "outline", "underline", "hide"]);
+  assert.deepEqual(UNFOCUSED_STYLES, ["dim", "hollow", "outline", "underline", "hide"]);
 });
 
 test("blink rates enum", () => {
