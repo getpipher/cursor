@@ -145,7 +145,7 @@ export default function (pi: ExtensionAPI): void {
         ctx.ui.notify(`cursor: ${JSON.stringify(cfg)}`, "info");
         return;
       }
-      await ctx.ui.custom<boolean>((_tui, theme: Theme, _kb, done) => {
+      await ctx.ui.custom<boolean>((tui: any, theme: Theme, _kb, done) => {
         const container = new Container();
         container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
         container.addChild(new Spacer(1));
@@ -169,10 +169,24 @@ export default function (pi: ExtensionAPI): void {
           },
           () => done(true),
         );
+        const accentBorder = (s: string) => theme.fg("accent", s);
         container.addChild(settingsList);
         container.addChild(new Text(theme.fg("dim", "↑↓ navigate • enter edit/cycle • esc done"), 0, 0));
         container.addChild(new Spacer(1));
-        return container;
+        container.addChild(new DynamicBorder(accentBorder)); // bottom border (matches /settings framing)
+
+        return {
+          render(width: number) {
+            return container.render(width);
+          },
+          invalidate() {
+            container.invalidate();
+          },
+          handleInput(data: string) {
+            settingsList.handleInput(data);
+            tui.requestRender();
+          },
+        } as any;
       });
     },
   });
