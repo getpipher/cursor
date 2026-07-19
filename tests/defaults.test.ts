@@ -32,5 +32,5 @@ test("blink rates enum", () => {
 });
 
 test("focus providers enum", () => {
-  assert.deepEqual(FOCUS_PROVIDERS, ["auto", "tmux", "herdr", "static"]);
+  assert.deepEqual(FOCUS_PROVIDERS, ["auto", "tmux", "cmux", "herdr", "static"]);
 });

@@ -1,8 +1,8 @@
 # @getpipher/cursor
 
 A pi coding-agent extension that customizes the editor cursor and makes it
-focus-aware across terminal/multiplexer stacks (tmux + herdr in v0.1; static
-fallback elsewhere; cmux + zellij/screen/wezterm + bare-terminal DEC 1004 in
+focus-aware across terminal/multiplexer stacks (tmux + cmux + herdr in v0.1.1;
+static fallback elsewhere; zellij/screen/wezterm + bare-terminal DEC 1004 in
 later releases).
 
 ## Build & test
@@ -20,7 +20,7 @@ pnpm test:run      # node:test via tsx
 - `/cursor focused block|bar|underline`
 - `/cursor unfocused dim|hollow|outline|underline|hide`
 - `/cursor blink on [ms] | off`
-- `/cursor provider auto|tmux|herdr|static`
+- `/cursor provider auto|tmux|cmux|herdr|static`
 - `/cursor status`
 - `/cursor reset` (also `r` in the panel)
 
@@ -37,6 +37,7 @@ pnpm test:run      # node:test via tsx
 | `lib/state.ts` | blink timer |
 | `lib/focus/index.ts` | `FocusProvider` interface + auto-detect |
 | `lib/focus/tmux.ts` | tmux pane-focus hooks + fs.watch |
+| `lib/focus/cmux.ts` | cmux v2 socket `debug.terminal.is_focused` RPC (poll) |
 | `lib/focus/herdr.ts` | herdr socket API events |
 | `lib/focus/static.ts` | always-focused fallback |
 
@@ -51,6 +52,10 @@ pnpm test:run      # node:test via tsx
   cursor *is* the cell; ANSI has no partial-cell overlay). Reappears on move.
   Documented, not a bug.
 - tmux focus detection requires `set -g focus-events on` in `~/.tmux.conf`.
+- cmux adapter is built from `manaflow-ai/cmux` source (`tests_v2/cmux.py`,
+  `docs/events.md`, `docs/cli-contract.md`); uses the `debug.terminal.is_focused`
+  RPC polled every ~300 ms. Unverified without a live cmux session in v0.1.1;
+  debug-build glob socket discovery not implemented.
 - herdr adapter is built from `herdr.dev/docs/socket-api` (verified against
   `herdr api schema --json`); unverified without a live herdr session in v0.1.
 - Bare-terminal (no multiplexer) = static mode in v0.1 (pi-tui upstream gap;

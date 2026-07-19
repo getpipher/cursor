@@ -1,11 +1,11 @@
 export type FocusedStyle = "block" | "bar" | "underline";
 export type UnfocusedStyle = "dim" | "hollow" | "outline" | "underline" | "hide";
-export type FocusProviderName = "auto" | "tmux" | "herdr" | "static";
+export type FocusProviderName = "auto" | "tmux" | "cmux" | "herdr" | "static";
 
 export const FOCUSED_STYLES: readonly FocusedStyle[] = ["block", "bar", "underline"];
 export const UNFOCUSED_STYLES: readonly UnfocusedStyle[] = ["dim", "hollow", "outline", "underline", "hide"];
 export const BLINK_RATES: readonly number[] = [400, 500, 600, 800, 1000];
-export const FOCUS_PROVIDERS: readonly FocusProviderName[] = ["auto", "tmux", "herdr", "static"];
+export const FOCUS_PROVIDERS: readonly FocusProviderName[] = ["auto", "tmux", "cmux", "herdr", "static"];
 
 export interface CursorConfig {
   enabled: boolean;

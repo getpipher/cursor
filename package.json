@@ -1,12 +1,13 @@
 {
   "name": "@getpipher/cursor",
-  "version": "0.1.0",
-  "description": "Focus-aware, customizable editor cursor for the pi coding agent (tmux + herdr; static fallback).",
+  "version": "0.1.1",
+  "description": "Focus-aware, customizable editor cursor for the pi coding agent (tmux + cmux + herdr; static fallback).",
   "keywords": [
     "pi-package",
     "pi-extension",
     "cursor",
     "tmux",
+    "cmux",
     "herdr",
     "focus",
     "tui"

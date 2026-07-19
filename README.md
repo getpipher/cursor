@@ -19,6 +19,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 - **Blink** (opt-in, default off) — pauses when the pane is unfocused.
 - **Focus detection** via a pluggable `FocusProvider`:
   - **tmux** — pane-focus-in/out hooks + `fs.watch` (push).
+  - **cmux** — cmux v2 socket API `debug.terminal.is_focused` RPC (poll).
   - **herdr** — herdr socket API events (push).
   - **static** — always-focused fallback (bare terminal / unknown).
 - **`/cursor` panel** — the same `SettingsList` engine pi's native `/settings` uses, plus power-user subcommands. Press **`r`** in the panel to reset to defaults.
@@ -31,7 +32,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 /cursor focused block|bar|underline
 /cursor unfocused dim|hollow|outline|underline|hide
 /cursor blink on [ms] | off  # ms ∈ {400,500,600,800,1000}
-/cursor provider auto|tmux|herdr|static
+/cursor provider auto|tmux|cmux|herdr|static
 /cursor status               # print config + active provider + detected env
 /cursor reset                # reset to defaults (also: `r` in the panel)
 ```
@@ -50,6 +51,12 @@ set -g focus-events on
 ```
 
 If `focus-events` is off, the extension degrades gracefully to static mode and notifies you once.
+
+### cmux
+
+Uses cmux's v2 socket API to call the purpose-built `debug.terminal.is_focused` RPC with our surface id (`CMUX_SURFACE_ID`), polled every ~300 ms. The server authoritatively resolves the full window→workspace→pane→surface focus hierarchy, so the client never reconstructs it. Auto-detected when `CMUX_SURFACE_ID` is present and the cmux control socket is reachable (`CMUX_SOCKET_PATH`, or `~/Library/Application Support/cmux/last-socket-path`, or `/tmp/cmux-debug.sock`, or `~/Library/Application Support/cmux/cmux.sock`, or `/tmp/cmux.sock`). Precedence: `tmux` > `cmux` > `herdr` > `static`.
+
+> **⚠️ v0.1.1 cmux adapter is built from `manaflow-ai/cmux` source (`tests_v2/cmux.py`, `docs/events.md`, `docs/cli-contract.md`) and unit-tested against a mocked RPC, but not verified against a live cmux session.** The wire envelope, the `debug.terminal.is_focused` method + params + result shape, and the socket-path resolution order are confirmed against the Python client source (not just prose docs). The one assumption: that `CMUX_SURFACE_ID` is always injected into terminal surfaces (cli-contract.md states it is the "Default surface context inside cmux terminals"). Debug-build glob socket discovery (`/tmp/cmux-debug-*.sock`, `cmux*.sock`) is not implemented in v0.1.1. See `lib/focus/cmux.ts`.
 
 ### herdr
 
