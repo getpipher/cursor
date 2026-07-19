@@ -19,7 +19,8 @@ import {
   type UnfocusedStyle,
   type FocusProviderName,
 } from "../lib/defaults.ts";
-import { loadConfig, saveConfig } from "../lib/config.ts";
+import type { FSWatcher } from "node:fs";
+import { loadConfig, saveConfigTracked, watchConfig } from "../lib/config.ts";
 import { CursorEditor } from "../lib/editor.ts";
 import { BlinkController } from "../lib/state.ts";
 import { createProvider, type FocusProvider } from "../lib/focus/index.ts";
@@ -75,6 +76,8 @@ export default function (pi: ExtensionAPI): void {
   let provider: FocusProvider | null = null;
   let blink: BlinkController | null = null;
   let prevEditorFactory: ((tui: any, theme: any, kb: any) => any) | null = null;
+  let configWatcher: FSWatcher | undefined;
+  const self = { mtimeMs: 0, fingerprint: "" };
 
   function restartBlink(): void {
     if (!blink || !editor) return;
@@ -88,18 +91,22 @@ export default function (pi: ExtensionAPI): void {
     await provider.start(() => {});
   }
 
-  async function applyConfig(next: CursorConfig): Promise<void> {
+  // `save=true` for local changes (writes the file → propagates to other sessions
+  // via the watcher). `save=false` for external changes (already on disk; don't
+  // re-save, to avoid a cross-session cascade).
+  async function applyConfig(next: CursorConfig, save: boolean): Promise<void> {
     const prev = cfg;
     cfg = next;
     editor?.updateConfig(next);
     if (prev.focusProvider !== next.focusProvider) await restartProvider();
     if (prev.blink !== next.blink || prev.blinkRate !== next.blinkRate) restartBlink();
-    await saveConfig(next, CONFIG_DIR);
+    if (save) await saveConfigTracked(next, CONFIG_DIR, self);
   }
 
   pi.on("session_start", async (_e, ctx) => {
     if (!ctx.hasUI) return;
     cfg = await loadConfig(CONFIG_DIR);
+    await saveConfigTracked(cfg, CONFIG_DIR, self);
     prevEditorFactory = ctx.ui.getEditorComponent?.() ?? null;
     const blinkController = new BlinkController();
     blink = blinkController;
@@ -113,9 +120,14 @@ export default function (pi: ExtensionAPI): void {
     });
     provider = await createProvider(cfg.focusProvider, (focused) => editor?.setFocus(focused));
     await provider.start(() => {});
+    configWatcher = watchConfig(CONFIG_DIR, self, (next) => {
+      void applyConfig(next, false);
+    });
   });
 
   pi.on("session_shutdown", async () => {
+    configWatcher?.close();
+    configWatcher = undefined;
     await provider?.stop();
     provider = null;
     blink?.stop();
@@ -136,7 +148,7 @@ export default function (pi: ExtensionAPI): void {
         return;
       }
       if (parsed.action === "set") {
-        await applyConfig({ ...cfg, ...parsed.patch });
+        await applyConfig({ ...cfg, ...parsed.patch }, true);
         ctx.ui.notify("cursor: config saved", "info");
         return;
       }
@@ -164,7 +176,7 @@ export default function (pi: ExtensionAPI): void {
           },
           (id: string, newValue: string) => {
             const next = applyRowChange(cfg, id, newValue);
-            void applyConfig(next);
+            void applyConfig(next, true);
             settingsList.updateValue(id, rowDisplayValue(id, next));
           },
           () => done(true),

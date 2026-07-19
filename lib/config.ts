@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { watch, type FSWatcher } from "node:fs";
+import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   DEFAULT_CONFIG,
@@ -77,4 +78,60 @@ export function cycleValue(cfg: CursorConfig, key: CycleableKey): CursorConfig {
   }
   const i = FOCUS_PROVIDERS.indexOf(cfg.focusProvider);
   return { ...cfg, focusProvider: FOCUS_PROVIDERS[(i + 1) % FOCUS_PROVIDERS.length]! };
+}
+
+/**
+ * Live-global config: watches `~/.pi/agent/cursor.json` so a change in one pi
+ * session propagates to all running sessions. Debounced + self-write-ignored
+ * (by mtime + content fingerprint) so the writing session doesn't re-apply its
+ * own write. Returns the FSWatcher (call .close() on shutdown).
+ */
+export function watchConfig(
+  dir: string,
+  self: { mtimeMs: number; fingerprint: string },
+  onExternalChange: (cfg: CursorConfig) => void,
+): FSWatcher {
+  const path = join(dir, CONFIG_FILENAME);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const watcher = watch(path, { persistent: false }, () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const st = await stat(path);
+          const content = await readFile(path, "utf8");
+          // ignore our own write (same mtime + same fingerprint)
+          if (st.mtimeMs === self.mtimeMs && fingerprint(content) === self.fingerprint) return;
+          const { config } = normalizeConfig(JSON.parse(content));
+          onExternalChange(config);
+        } catch {
+          /* transient: file mid-write or deleted */
+        }
+      })();
+    }, 80);
+  });
+  return watcher;
+}
+
+export function fingerprint(content: string): string {
+  // cheap, non-crypto fingerprint for self-write dedup
+  let h = 0;
+  for (let i = 0; i < content.length; i++) {
+    h = (h * 31 + content.charCodeAt(i)) | 0;
+  }
+  return `${content.length}:${h}`;
+}
+
+export async function saveConfigTracked(
+  cfg: CursorConfig,
+  dir: string,
+  self: { mtimeMs: number; fingerprint: string },
+): Promise<void> {
+  const path = join(dir, CONFIG_FILENAME);
+  await mkdir(dir, { recursive: true });
+  const content = JSON.stringify(cfg, null, 2) + "\n";
+  await writeFile(path, content, "utf8");
+  const st = await stat(path);
+  self.mtimeMs = st.mtimeMs;
+  self.fingerprint = fingerprint(content);
 }

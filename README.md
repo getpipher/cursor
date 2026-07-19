@@ -35,7 +35,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 /cursor status               # print config + active provider + detected env
 ```
 
-Config persists to `~/.pi/agent/cursor.json` and survives restarts.
+Config persists to `~/.pi/agent/cursor.json` and survives restarts. It's **live-global**: a change in one pi session writes the file and propagates to all other running pi sessions immediately (via a file watcher) — set it once in any pane, every running pane updates its cursor live.
 
 ## Focus providers
 
