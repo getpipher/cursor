@@ -54,43 +54,43 @@ test("activeProvider applyRowChange is a no-op (read-only)", () => {
 });
 
 test("previewLine focused renders the sample with the focused style cursor", () => {
-  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  const sample = `const result = await fetch(url);${CURSOR_MARKER}\x1b[7m \x1b[0m`;
   // block + enabled → passthrough (keeps marker)
   const block = previewLine(() => DEFAULT_CONFIG, true);
   assert.deepEqual(block.render(80), [sample]);
-  // underline → underline SGR on char, marker dropped
+  // underline → underline SGR on the trailing space, marker dropped
   const ul = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "underline" }), true);
-  assert.deepEqual(ul.render(80), [`const result = await \x1b[4mf\x1b[0metch(url);`]);
-  // bar → ▎ glyph
+  assert.deepEqual(ul.render(80), [`const result = await fetch(url);\x1b[4m \x1b[0m`]);
+  // bar → ▎ glyph at line end (no char eaten)
   const bar = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "bar" }), true);
-  assert.deepEqual(bar.render(80), [`const result = await \x1b[38;5;7m▎\x1b[39metch(url);`]);
+  assert.deepEqual(bar.render(80), [`const result = await fetch(url);\x1b[38;5;7m▎\x1b[39m`]);
 });
 
 test("previewLine unfocused renders the sample with the unfocused style cursor", () => {
   // dim (default)
   const dim = previewLine(() => DEFAULT_CONFIG, false);
-  assert.deepEqual(dim.render(80), [`const result = await \x1b[2;7mf\x1b[0metch(url);`]);
+  assert.deepEqual(dim.render(80), [`const result = await fetch(url);\x1b[2;7m \x1b[0m`]);
   // hide
   const hide = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "hide" }), false);
-  assert.deepEqual(hide.render(80), [`const result = await fetch(url);`]);
+  assert.deepEqual(hide.render(80), [`const result = await fetch(url); `]);
 });
 
 test("previewLine focused respects blink phase via getBlinkVisible", () => {
   const cfgBlink: CursorConfig = { ...DEFAULT_CONFIG, focusedStyle: "block", blink: true };
-  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  const sample = `const result = await fetch(url);${CURSOR_MARKER}\x1b[7m \x1b[0m`;
   // blink visible=true → block passthrough (keeps marker)
   const vis = previewLine(() => cfgBlink, true, () => true);
   assert.deepEqual(vis.render(80), [sample]);
-  // blink visible=false → hide (bare char, marker dropped)
+  // blink visible=false → hide (bare trailing space, marker dropped)
   const hid = previewLine(() => cfgBlink, true, () => false);
-  assert.deepEqual(hid.render(80), [`const result = await fetch(url);`]);
+  assert.deepEqual(hid.render(80), [`const result = await fetch(url); `]);
 });
 
 test("previewLine reads live cfg (updates when cfg changes)", () => {
   let cfg: CursorConfig = { ...DEFAULT_CONFIG, focusedStyle: "block" };
   const p = previewLine(() => cfg, true);
-  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  const sample = `const result = await fetch(url);${CURSOR_MARKER}\x1b[7m \x1b[0m`;
   assert.deepEqual(p.render(80), [sample]); // block
   cfg = { ...cfg, focusedStyle: "underline" };
-  assert.deepEqual(p.render(80), [`const result = await \x1b[4mf\x1b[0metch(url);`]); // now underline
+  assert.deepEqual(p.render(80), [`const result = await fetch(url);\x1b[4m \x1b[0m`]); // now underline
 });

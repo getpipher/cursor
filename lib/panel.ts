@@ -98,7 +98,7 @@ export function previewLine(
   focused: boolean,
   getBlinkVisible?: () => boolean,
 ): Component {
-  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  const sample = `const result = await fetch(url);${CURSOR_MARKER}\x1b[7m \x1b[0m`;;
   return {
     render(_width: number): string[] {
       const cfg = getCfg();
