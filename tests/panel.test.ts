@@ -75,6 +75,17 @@ test("previewLine unfocused renders the sample with the unfocused style cursor",
   assert.deepEqual(hide.render(80), [`const result = await fetch(url);`]);
 });
 
+test("previewLine focused respects blink phase via getBlinkVisible", () => {
+  const cfgBlink: CursorConfig = { ...DEFAULT_CONFIG, focusedStyle: "block", blink: true };
+  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  // blink visible=true → block passthrough (keeps marker)
+  const vis = previewLine(() => cfgBlink, true, () => true);
+  assert.deepEqual(vis.render(80), [sample]);
+  // blink visible=false → hide (bare char, marker dropped)
+  const hid = previewLine(() => cfgBlink, true, () => false);
+  assert.deepEqual(hid.render(80), [`const result = await fetch(url);`]);
+});
+
 test("previewLine reads live cfg (updates when cfg changes)", () => {
   let cfg: CursorConfig = { ...DEFAULT_CONFIG, focusedStyle: "block" };
   const p = previewLine(() => cfg, true);

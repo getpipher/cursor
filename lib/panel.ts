@@ -89,16 +89,24 @@ export function applyRowChange(cfg: CursorConfig, id: string, newValue: string):
 
 /** A live preview line: renders a sample code line with the cursor in the
  * current focused (or unfocused) style. Reads `getCfg()` on each render so it
- * updates instantly as the user cycles a style/blink row. Uses the real ANSI
+ * updates instantly as the user cycles a style/blink row. For the focused
+ * preview, `getBlinkVisible()` drives the blink phase (so the preview blinks
+ * in sync with the real editor cursor when blink is on). Uses the real ANSI
  * transforms — what the terminal shows is what ships. */
-export function previewLine(getCfg: () => CursorConfig, focused: boolean): Component {
+export function previewLine(
+  getCfg: () => CursorConfig,
+  focused: boolean,
+  getBlinkVisible?: () => boolean,
+): Component {
   const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
   return {
     render(_width: number): string[] {
       const cfg = getCfg();
-      return focused
-        ? transformFocused([sample], cfg, true)
-        : transformUnfocused([sample], cfg);
+      if (focused) {
+        const blinkVisible = getBlinkVisible ? getBlinkVisible() : true;
+        return transformFocused([sample], cfg, blinkVisible);
+      }
+      return transformUnfocused([sample], cfg);
     },
     invalidate() {},
   };

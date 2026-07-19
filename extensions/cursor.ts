@@ -183,8 +183,9 @@ export default function (pi: ExtensionAPI): void {
         );
         const accentBorder = (s: string) => theme.fg("accent", s);
         const getCfg = () => cfg;
+        const getBlinkVisible = () => (cfg.blink ? blink?.visible ?? true : true);
         container.addChild(new Text(theme.fg("dim", "focused:"), 0, 0));
-        container.addChild(previewLine(getCfg, true) as any);
+        container.addChild(previewLine(getCfg, true, getBlinkVisible) as any);
         container.addChild(new Text(theme.fg("dim", "unfocused:"), 0, 0));
         container.addChild(previewLine(getCfg, false) as any);
         container.addChild(new Spacer(1));
