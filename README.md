@@ -21,7 +21,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
   - **tmux** — pane-focus-in/out hooks + `fs.watch` (push).
   - **herdr** — herdr socket API events (push).
   - **static** — always-focused fallback (bare terminal / unknown).
-- **`/cursor` panel** — the same `SettingsList` engine pi's native `/settings` uses, plus power-user subcommands.
+- **`/cursor` panel** — the same `SettingsList` engine pi's native `/settings` uses, plus power-user subcommands. Press **`r`** in the panel to reset to defaults.
 
 ## `/cursor` command
 
@@ -33,6 +33,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 /cursor blink on [ms] | off  # ms ∈ {400,500,600,800,1000}
 /cursor provider auto|tmux|herdr|static
 /cursor status               # print config + active provider + detected env
+/cursor reset                # reset to defaults (also: `r` in the panel)
 ```
 
 Config persists to `~/.pi/agent/cursor.json` and survives restarts. It's **live-global**: a change in one pi session writes the file and propagates to all other running pi sessions immediately (via a file watcher) — set it once in any pane, every running pane updates its cursor live.

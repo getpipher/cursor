@@ -22,6 +22,7 @@ pnpm test:run      # node:test via tsx
 - `/cursor blink on [ms] | off`
 - `/cursor provider auto|tmux|herdr|static`
 - `/cursor status`
+- `/cursor reset` (also `r` in the panel)
 
 ## Module map
 

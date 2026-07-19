@@ -5,6 +5,7 @@ import {
   Container,
   Spacer,
   Text,
+  matchesKey,
 } from "@earendil-works/pi-tui";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -32,6 +33,7 @@ export type CursorArgs =
   | { action: "panel" }
   | { action: "status" }
   | { action: "usage" }
+  | { action: "reset" }
   | { action: "set"; patch: Partial<CursorConfig> };
 
 export function parseCursorArgs(args: string[], _cfg: CursorConfig): CursorArgs {
@@ -44,6 +46,8 @@ export function parseCursorArgs(args: string[], _cfg: CursorConfig): CursorArgs 
       return { action: "set", patch: { enabled: false } };
     case "status":
       return { action: "status" };
+    case "reset":
+      return { action: "reset" };
     case "focused":
       if (!FOCUSED_STYLES.includes(b as FocusedStyle)) throw new Error(`Usage: /cursor focused ${FOCUSED_STYLES.join("|")}`);
       return { action: "set", patch: { focusedStyle: b as FocusedStyle } };
@@ -147,6 +151,11 @@ export default function (pi: ExtensionAPI): void {
         ctx.ui.notify(`cursor: ${JSON.stringify(cfg)} · provider=${provider?.name ?? "none"}`, "info");
         return;
       }
+      if (parsed.action === "reset") {
+        await applyConfig(DEFAULT_CONFIG, true);
+        ctx.ui.notify("cursor: reset to defaults", "info");
+        return;
+      }
       if (parsed.action === "set") {
         await applyConfig({ ...cfg, ...parsed.patch }, true);
         ctx.ui.notify("cursor: config saved", "info");
@@ -190,7 +199,7 @@ export default function (pi: ExtensionAPI): void {
         container.addChild(previewLine(getCfg, false) as any);
         container.addChild(new Spacer(1));
         container.addChild(settingsList);
-        container.addChild(new Text(theme.fg("dim", "↑↓ navigate • enter edit/cycle • esc done"), 0, 0));
+        container.addChild(new Text(theme.fg("dim", "↑↓ navigate • enter edit/cycle • r reset • esc done"), 0, 0));
         container.addChild(new Spacer(1));
         container.addChild(new DynamicBorder(accentBorder)); // bottom border (matches /settings framing)
 
@@ -202,6 +211,11 @@ export default function (pi: ExtensionAPI): void {
             container.invalidate();
           },
           handleInput(data: string) {
+            if (matchesKey(data, "r")) {
+              void applyConfig(DEFAULT_CONFIG, true);
+              tui.requestRender();
+              return;
+            }
             settingsList.handleInput(data);
             tui.requestRender();
           },

@@ -42,6 +42,10 @@ test("status → status", () => {
   assert.deepEqual(parseCursorArgs(["status"], DEFAULT_CONFIG), { action: "status" });
 });
 
+test("reset → reset", () => {
+  assert.deepEqual(parseCursorArgs(["reset"], DEFAULT_CONFIG), { action: "reset" });
+});
+
 test("unknown → usage", () => {
   assert.deepEqual(parseCursorArgs(["bogus"], DEFAULT_CONFIG), { action: "usage" });
 });
