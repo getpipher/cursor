@@ -1,4 +1,5 @@
-import type { SettingItem } from "@earendil-works/pi-tui";
+import type { SettingItem, Component } from "@earendil-works/pi-tui";
+import { CURSOR_MARKER } from "@earendil-works/pi-tui";
 import {
   FOCUSED_STYLES,
   UNFOCUSED_STYLES,
@@ -9,6 +10,7 @@ import {
   type UnfocusedStyle,
   type FocusProviderName,
 } from "./defaults.ts";
+import { transformFocused, transformUnfocused } from "./render.ts";
 
 /** Build the SettingsList rows for the `/cursor` panel. Pure data — the entry
  * wires `SettingsList.onChange(id, newValue)` to `applyRowChange`. */
@@ -85,6 +87,22 @@ export function applyRowChange(cfg: CursorConfig, id: string, newValue: string):
   }
 }
 
+/** A live preview line: renders a sample code line with the cursor in the
+ * current focused (or unfocused) style. Reads `getCfg()` on each render so it
+ * updates instantly as the user cycles a style/blink row. Uses the real ANSI
+ * transforms — what the terminal shows is what ships. */
+export function previewLine(getCfg: () => CursorConfig, focused: boolean): Component {
+  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  return {
+    render(_width: number): string[] {
+      const cfg = getCfg();
+      return focused
+        ? transformFocused([sample], cfg, true)
+        : transformUnfocused([sample], cfg);
+    },
+    invalidate() {},
+  };
+}
 /** Current display value for a row id, given a config (used to updateValue on the list). */
 export function rowDisplayValue(id: string, cfg: CursorConfig): string {
   if (id === "enabled") return cfg.enabled ? "on" : "off";

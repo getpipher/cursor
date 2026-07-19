@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { panelRows, applyRowChange } from "../lib/panel.ts";
-import { DEFAULT_CONFIG } from "../lib/defaults.ts";
+import { panelRows, applyRowChange, previewLine } from "../lib/panel.ts";
+import { CURSOR_MARKER } from "@earendil-works/pi-tui";
+import { DEFAULT_CONFIG, type CursorConfig } from "../lib/defaults.ts";
 
 test("panel rows cover all config keys in order", () => {
   const rows = panelRows(DEFAULT_CONFIG, "static");
@@ -50,4 +51,35 @@ test("applyRowChange focusProvider", () => {
 
 test("activeProvider applyRowChange is a no-op (read-only)", () => {
   assert.deepEqual(applyRowChange(DEFAULT_CONFIG, "activeProvider", "tmux"), DEFAULT_CONFIG);
+});
+
+test("previewLine focused renders the sample with the focused style cursor", () => {
+  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  // block + enabled → passthrough (keeps marker)
+  const block = previewLine(() => DEFAULT_CONFIG, true);
+  assert.deepEqual(block.render(80), [sample]);
+  // underline → underline SGR on char, marker dropped
+  const ul = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "underline" }), true);
+  assert.deepEqual(ul.render(80), [`const result = await \x1b[4mf\x1b[0metch(url);`]);
+  // bar → ▎ glyph
+  const bar = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "bar" }), true);
+  assert.deepEqual(bar.render(80), [`const result = await \x1b[38;5;7m▎\x1b[39metch(url);`]);
+});
+
+test("previewLine unfocused renders the sample with the unfocused style cursor", () => {
+  // dim (default)
+  const dim = previewLine(() => DEFAULT_CONFIG, false);
+  assert.deepEqual(dim.render(80), [`const result = await \x1b[2;7mf\x1b[0metch(url);`]);
+  // hide
+  const hide = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "hide" }), false);
+  assert.deepEqual(hide.render(80), [`const result = await fetch(url);`]);
+});
+
+test("previewLine reads live cfg (updates when cfg changes)", () => {
+  let cfg: CursorConfig = { ...DEFAULT_CONFIG, focusedStyle: "block" };
+  const p = previewLine(() => cfg, true);
+  const sample = `const result = await ${CURSOR_MARKER}\x1b[7mf\x1b[0metch(url);`;
+  assert.deepEqual(p.render(80), [sample]); // block
+  cfg = { ...cfg, focusedStyle: "underline" };
+  assert.deepEqual(p.render(80), [`const result = await \x1b[4mf\x1b[0metch(url);`]); // now underline
 });

@@ -24,7 +24,7 @@ import { loadConfig, saveConfigTracked, watchConfig } from "../lib/config.ts";
 import { CursorEditor } from "../lib/editor.ts";
 import { BlinkController } from "../lib/state.ts";
 import { createProvider, type FocusProvider } from "../lib/focus/index.ts";
-import { panelRows, applyRowChange, rowDisplayValue } from "../lib/panel.ts";
+import { panelRows, applyRowChange, rowDisplayValue, previewLine } from "../lib/panel.ts";
 
 const CONFIG_DIR = join(homedir(), ".pi", "agent");
 
@@ -182,6 +182,12 @@ export default function (pi: ExtensionAPI): void {
           () => done(true),
         );
         const accentBorder = (s: string) => theme.fg("accent", s);
+        const getCfg = () => cfg;
+        container.addChild(new Text(theme.fg("dim", "focused:"), 0, 0));
+        container.addChild(previewLine(getCfg, true) as any);
+        container.addChild(new Text(theme.fg("dim", "unfocused:"), 0, 0));
+        container.addChild(previewLine(getCfg, false) as any);
+        container.addChild(new Spacer(1));
         container.addChild(settingsList);
         container.addChild(new Text(theme.fg("dim", "↑↓ navigate • enter edit/cycle • esc done"), 0, 0));
         container.addChild(new Spacer(1));
