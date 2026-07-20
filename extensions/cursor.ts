@@ -127,7 +127,7 @@ export default function (pi: ExtensionAPI): void {
     blink = blinkController;
     ctx.ui.setEditorComponent((tui: any, theme: any, keybindings: any) => {
       const wrapped = prevEditorFactory ? prevEditorFactory(tui, theme, keybindings) : null;
-      const ed = new CursorEditor(tui, theme, keybindings, { wrapped, blink: blinkController });
+      const ed = new CursorEditor(tui, theme, keybindings, { wrapped, blink: blinkController, getTheme: () => ctx.ui.theme });
       editor = ed;
       ed.updateConfig(cfg);
       // In hardware mode the native DECSCUSR blink drives the cursor; don't run the fake blink.

@@ -1,6 +1,6 @@
 {
   "name": "@getpipher/cursor",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Focus-aware, customizable editor cursor for the pi coding agent (truecolor + Ghostty/tmux deep; tmux + cmux + herdr; static fallback).",
   "keywords": [
     "pi-package",

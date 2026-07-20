@@ -8,6 +8,11 @@ type Theme = { getFgAnsi(color: string): string; getColorMode(): "truecolor" | "
 export interface CursorEditorDeps {
   wrapped: { render(width: number): string[]; handleInput(data: string): void } | null;
   blink: BlinkController;
+  /** Live accessor for the active pi `Theme` instance (NOT the EditorTheme
+   *  passed to the editor factory, which only has `borderColor`/`selectList`).
+   *  The real Theme exposes `getFgAnsi`/`getColorMode` for truecolor cursor
+   *  colors and must be read live so theme switches are reflected. */
+  getTheme: () => Theme;
 }
 
 export function composeRender(
@@ -28,12 +33,10 @@ export class CursorEditor extends CustomEditor {
   private cfg: CursorConfig;
   private paneFocused = true;
   private deps: CursorEditorDeps;
-  private cursorTheme: Theme;
 
   constructor(tui: any, theme: any, keybindings: any, deps: CursorEditorDeps) {
     super(tui, theme, keybindings, {});
     this.deps = deps;
-    this.cursorTheme = theme as Theme;
     this.cfg = {
       enabled: true,
       focusedStyle: "block",
@@ -73,7 +76,7 @@ export class CursorEditor extends CustomEditor {
         this.cfg.focusedStyle === "underline" ? "underline" :
         this.cfg.focusedStyle === "bar" ? "bar" : "block";
       this.writeTerm(decscusr(shape, this.cfg.blink));
-      const hex = this.cfg.cursorColor === "accent" ? themeAccentHex(this.cursorTheme) : this.cfg.cursorColor;
+      const hex = this.cfg.cursorColor === "accent" ? themeAccentHex(this.deps.getTheme()) : this.cfg.cursorColor;
       const osc = osc12(hex);
       if (osc) this.writeTerm(osc);
     } else {
@@ -112,6 +115,6 @@ export class CursorEditor extends CustomEditor {
 
   render(width: number): string[] {
     const lines = this.deps.wrapped ? this.deps.wrapped.render(width) : super.render(width);
-    return composeRender(lines, this.paneFocused, this.cfg, this.cursorTheme, this.deps.blink.visible, this.cfg.cursorMode);
+    return composeRender(lines, this.paneFocused, this.cfg, this.deps.getTheme(), this.deps.blink.visible, this.cfg.cursorMode);
   }
 }
