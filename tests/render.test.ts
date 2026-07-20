@@ -117,3 +117,18 @@ test("hardware focused: bare char (marker kept, reverse-video dropped)", () => {
   assert.ok(out[0]!.includes("fawait;"), "bare char preserved");
   assert.ok(!out[0]!.includes("\x1b[7m"), "no reverse-video");
 });
+
+// --- v0.2.0 (A): cursorColor hex override ---
+test("cursorColor hex override flows to focused bar", () => {
+  const theme = { getFgAnsi: () => "\x1b[38;2;0;0;0m", getColorMode: () => "truecolor" as const };
+  const cfg = { ...DEFAULT_CONFIG, focusedStyle: "bar", cursorColor: "#ff5555" };
+  const out = transformFocused([line("f")], cfg, theme as any, true, "fake");
+  assert.ok(out[0]!.includes("\x1b[38;2;255;85;85m"), "hex override used");
+});
+
+test("cursorColor hex override flows to unfocused hollow (dimmed)", () => {
+  const theme = { getFgAnsi: () => "\x1b[38;2;0;0;0m", getColorMode: () => "truecolor" as const };
+  const cfg = { ...DEFAULT_CONFIG, unfocusedStyle: "hollow", cursorColor: "#cba6f7" };
+  const out = transformUnfocused([line("f")], cfg, theme as any);
+  assert.ok(out[0]!.includes("\x1b[38;2;101;83;123m"), "dimmed hex used (#cba6f7 → 101;83;123)");
+});
