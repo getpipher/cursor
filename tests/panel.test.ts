@@ -4,6 +4,11 @@ import { panelRows, applyRowChange, previewLine } from "../lib/panel.ts";
 import { CURSOR_MARKER } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG, type CursorConfig } from "../lib/defaults.ts";
 
+const THEME = {
+  getFgAnsi: (c: string) => (c === "accent" ? "\x1b[38;5;7m" : c === "dim" ? "\x1b[38;5;8m" : ""),
+  getColorMode: () => "256color" as const,
+};
+
 test("panel rows cover all config keys in order", () => {
   const rows = panelRows(DEFAULT_CONFIG, "static");
   assert.deepEqual(
@@ -62,16 +67,16 @@ test("previewLine focused renders the sample with the focused style cursor", () 
   const ul = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "underline" }), true);
   assert.deepEqual(ul.render(80), [`const result = await fetch(url);\x1b[4m \x1b[0m`]);
   // bar → ▎ glyph at line end (no char eaten)
-  const bar = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "bar" }), true);
+  const bar = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "bar" }), true, undefined, () => THEME);
   assert.deepEqual(bar.render(80), [`const result = await fetch(url);\x1b[38;5;7m▎\x1b[39m`]);
 });
 
 test("previewLine unfocused renders the sample with the unfocused style cursor", () => {
   // hollow (default) → □ sharp hollow block
-  const hollow = previewLine(() => DEFAULT_CONFIG, false);
+  const hollow = previewLine(() => DEFAULT_CONFIG, false, undefined, () => THEME);
   assert.deepEqual(hollow.render(80), [`const result = await fetch(url);\x1b[38;5;8m□\x1b[39m`]);
   // outline → ▢ rounded hollow square
-  const outline = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "outline" }), false);
+  const outline = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "outline" }), false, undefined, () => THEME);
   assert.deepEqual(outline.render(80), [`const result = await fetch(url);\x1b[38;5;8m▢\x1b[39m`]);
   // dim
   const dim = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "dim" }), false);

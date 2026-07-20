@@ -7,19 +7,24 @@ import { BlinkController, type Scheduler } from "../lib/state.ts";
 
 const cell = (ch: string) => `${CURSOR_MARKER}\x1b[7m${ch}\x1b[0m`;
 
+const THEME = {
+  getFgAnsi: (c: string) => (c === "accent" ? "\x1b[38;5;7m" : c === "dim" ? "\x1b[38;5;8m" : ""),
+  getColorMode: () => "256color" as const,
+};
+
 // Pure composition test — no instantiation needed.
 test("composeRender: focused+block = passthrough; focused+dim-underline; unfocused+hide", () => {
   const lines = [`const x = ${cell("f")}await;`];
   assert.deepEqual(
-    composeRender(lines, true, { ...DEFAULT_CONFIG, focusedStyle: "block" }, true),
+    composeRender(lines, true, { ...DEFAULT_CONFIG, focusedStyle: "block" }, THEME, true, "fake"),
     lines, // block + visible = passthrough (keeps marker)
   );
   assert.deepEqual(
-    composeRender(lines, true, { ...DEFAULT_CONFIG, focusedStyle: "underline" }, true),
+    composeRender(lines, true, { ...DEFAULT_CONFIG, focusedStyle: "underline" }, THEME, true, "fake"),
     [`const x = \x1b[4mf\x1b[0mawait;`],
   );
   assert.deepEqual(
-    composeRender(lines, false, { ...DEFAULT_CONFIG, unfocusedStyle: "hide" }, true),
+    composeRender(lines, false, { ...DEFAULT_CONFIG, unfocusedStyle: "hide" }, THEME, true, "fake"),
     [`const x = fawait;`],
   );
 });
@@ -31,7 +36,7 @@ function makeEditor(wrappedRender: (w: number) => string[]) {
   const blink = new BlinkController(noopScheduler);
   const wrapped = { render: wrappedRender, handleInput: (_d: string) => {} };
   const tui = { requestRender: () => {} };
-  const theme = { borderColor: "" };
+  const theme = THEME;
   const ed = new CursorEditor(tui as any, theme as any, {} as any, { wrapped: wrapped as any, blink });
   ed.updateConfig(DEFAULT_CONFIG);
   return { ed, wrapped };

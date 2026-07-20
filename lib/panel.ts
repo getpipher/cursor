@@ -97,16 +97,20 @@ export function previewLine(
   getCfg: () => CursorConfig,
   focused: boolean,
   getBlinkVisible?: () => boolean,
+  getTheme?: () => { getFgAnsi(color: string): string; getColorMode(): "truecolor" | "256color" },
 ): Component {
+  // Fallback no-color theme so previewLine works without a theme (T8 threads the real one).
+  const fallbackTheme = { getFgAnsi: () => "", getColorMode: () => "256color" as const };
   const sample = `const result = await fetch(url);${CURSOR_MARKER}\x1b[7m \x1b[0m`;;
   return {
     render(_width: number): string[] {
       const cfg = getCfg();
+      const theme = getTheme ? getTheme() : fallbackTheme;
       if (focused) {
         const blinkVisible = getBlinkVisible ? getBlinkVisible() : true;
-        return transformFocused([sample], cfg, blinkVisible);
+        return transformFocused([sample], cfg, theme, blinkVisible, cfg.cursorMode);
       }
-      return transformUnfocused([sample], cfg);
+      return transformUnfocused([sample], cfg, theme);
     },
     invalidate() {},
   };

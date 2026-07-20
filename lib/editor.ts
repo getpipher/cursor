@@ -1,34 +1,39 @@
 import { CustomEditor } from "@earendil-works/pi-coding-agent";
 import { transformFocused, transformUnfocused } from "./render.ts";
-import type { CursorConfig } from "./defaults.ts";
+import type { CursorConfig, CursorMode } from "./defaults.ts";
 import { BlinkController } from "./state.ts";
+
+type Theme = { getFgAnsi(color: string): string; getColorMode(): "truecolor" | "256color" };
 
 export interface CursorEditorDeps {
   wrapped: { render(width: number): string[]; handleInput(data: string): void } | null;
   blink: BlinkController;
 }
 
-/** Pure composition of wrapped render output + focus/blink transforms. Exported for testing. */
 export function composeRender(
   lines: string[],
   focused: boolean,
   cfg: CursorConfig,
+  theme: Theme,
   blinkVisible: boolean,
+  cursorMode: CursorMode,
 ): string[] {
   if (!cfg.enabled) return lines;
   return focused
-    ? transformFocused(lines, cfg, blinkVisible)
-    : transformUnfocused(lines, cfg);
+    ? transformFocused(lines, cfg, theme, blinkVisible, cursorMode)
+    : transformUnfocused(lines, cfg, theme);
 }
 
 export class CursorEditor extends CustomEditor {
   private cfg: CursorConfig;
   private paneFocused = true;
   private deps: CursorEditorDeps;
+  private cursorTheme: Theme;
 
   constructor(tui: any, theme: any, keybindings: any, deps: CursorEditorDeps) {
     super(tui, theme, keybindings, {});
     this.deps = deps;
+    this.cursorTheme = theme as Theme;
     this.cfg = {
       enabled: true,
       focusedStyle: "block",
@@ -67,6 +72,6 @@ export class CursorEditor extends CustomEditor {
 
   render(width: number): string[] {
     const lines = this.deps.wrapped ? this.deps.wrapped.render(width) : super.render(width);
-    return composeRender(lines, this.paneFocused, this.cfg, this.deps.blink.visible);
+    return composeRender(lines, this.paneFocused, this.cfg, this.cursorTheme, this.deps.blink.visible, this.cfg.cursorMode);
   }
 }

@@ -85,52 +85,68 @@ function transformLine(line: string, fn: (ch: string) => string): string {
   return line.includes(CURSOR_MARKER) ? rewriteCursorCell(line, fn) : line;
 }
 
-// bar/hollow/outline glyphs in dim accent (256-color: 7 = light gray for bar, 8 = dark gray for hollow/outline).
+// bar/hollow/outline glyphs (color now comes from the theme via resolveFocused/UnfocusedColor).
 const BAR = "\u258E"; // ▎
 const HOLLOW = "\u25A1"; // □ sharp hollow block (matches focused block shape)
 const OUTLINE = "\u25A2"; // ▢ rounded hollow square
 
-function focusedCell(style: FocusedStyle, ch: string): string {
+function focusedCell(style: FocusedStyle, ch: string, colorAnsi: string): string {
   switch (style) {
     case "block":
       return `\x1b[7m${ch}\x1b[0m`; // unchanged from pi
     case "underline":
       return `\x1b[4m${ch}\x1b[0m`;
     case "bar":
-      return `\x1b[38;5;7m${BAR}\x1b[39m`; // char hidden
+      return `${colorAnsi}${BAR}\x1b[39m`; // char hidden, accent-colored
   }
 }
 
-function unfocusedCell(style: UnfocusedStyle, ch: string): string {
+function unfocusedCell(style: UnfocusedStyle, ch: string, colorAnsi: string, truecolor: boolean): string {
   switch (style) {
     case "dim":
       return `\x1b[2;7m${ch}\x1b[0m`;
     case "hollow":
-      return `\x1b[38;5;8m${HOLLOW}\x1b[39m`; // char hidden (sharp hollow block)
+      return `${colorAnsi}${HOLLOW}\x1b[39m`; // char hidden, dim-colored
     case "outline":
-      return `\x1b[38;5;8m${OUTLINE}\x1b[39m`; // char hidden (rounded hollow square)
+      return `${colorAnsi}${OUTLINE}\x1b[39m`; // char hidden, dim-colored
     case "underline":
       return `\x1b[4;2m${ch}\x1b[0m`;
     case "hide":
       return ch;
     case "highlight":
-      return ch; // placeholder — T5 upgrades to undercurl + colored underline
+      // char-preserving colored styled underline (T5 fills the full impl;
+      // here it's a plain colored underline placeholder that T5 upgrades).
+      return `${colorAnsi}\x1b[4m${ch}\x1b[0m`;
   }
 }
 
-export function transformFocused(lines: string[], cfg: CursorConfig, blinkVisible: boolean): string[] {
+export function transformFocused(
+  lines: string[],
+  cfg: CursorConfig,
+  theme: Theme,
+  blinkVisible: boolean,
+  cursorMode: "fake" | "hardware" = "fake",
+): string[] {
   if (!cfg.enabled) return lines;
+  // Hardware focused: keep marker (so pi positions the real cursor), drop the
+  // reverse-video cell → bare char. Only the native hardware cursor shows.
+  if (cursorMode === "hardware") {
+    return lines.map((l) => (l.includes(CURSOR_MARKER) ? rewriteCursorCell(l, (ch) => ch) : l));
+  }
   // block + visible = pi-native passthrough (keep CURSOR_MARKER + reverse-video cell unchanged)
   if (cfg.focusedStyle === "block" && blinkVisible) return lines;
+  const colorAnsi = resolveFocusedColor(cfg, theme);
   // blink off-phase: render the bare char (hide). blink always blinks to invisible.
   const fn = blinkVisible
-    ? (ch: string) => focusedCell(cfg.focusedStyle, ch)
+    ? (ch: string) => focusedCell(cfg.focusedStyle, ch, colorAnsi)
     : (ch: string) => ch;
   return lines.map((l) => transformLine(l, fn));
 }
 
-export function transformUnfocused(lines: string[], cfg: CursorConfig): string[] {
+export function transformUnfocused(lines: string[], cfg: CursorConfig, theme: Theme): string[] {
   if (!cfg.enabled) return lines;
-  const fn = (ch: string) => unfocusedCell(cfg.unfocusedStyle, ch);
+  const colorAnsi = resolveUnfocusedColor(cfg, theme);
+  const truecolor = theme.getColorMode() === "truecolor";
+  const fn = (ch: string) => unfocusedCell(cfg.unfocusedStyle, ch, colorAnsi, truecolor);
   return lines.map((l) => transformLine(l, fn));
 }
