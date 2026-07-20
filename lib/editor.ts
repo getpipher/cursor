@@ -82,10 +82,14 @@ export class CursorEditor extends CustomEditor {
     }
   }
 
-  /** Write a raw escape sequence to the terminal (via pi-tui's TUI.terminal.write). */
+  /** Write a raw escape sequence to the terminal (via pi-tui's TUI.terminal.write).
+   *  Must call write as a METHOD (t.terminal.write(seq)) so `this` is the Terminal
+   *  instance — detaching the fn reference loses `this` (Terminal.write reads
+   *  this.writeLogPath) and throws. */
   private writeTerm(seq: string): void {
     const t = this.tui as any;
-    (t?.terminal?.write ?? t?.write)?.(seq);
+    if (t?.terminal?.write) t.terminal.write(seq);
+    else if (t?.write) t.write(seq);
   }
 
   /** Restore the terminal's default cursor (call on session_shutdown). */

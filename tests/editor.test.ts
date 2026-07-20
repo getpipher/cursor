@@ -89,13 +89,21 @@ test("setFocus(true) twice is a no-op (no redundant renders)", () => {
 function mockTui() {
   const writes: string[] = [];
   const hw: boolean[] = [];
+  // NOTE: `write` is a regular function (not an arrow) so it depends on `this`
+  // being the terminal object — mirroring the real pi-tui Terminal.write which
+  // reads this.writeLogPath. This catches the function-detachment bug where
+  // `(t.terminal.write)(seq)` loses `this` → throws.
+  const terminal = {
+    writes,
+    write(s: string) { this.writes.push(s); },
+  };
   return {
     writes,
     hw,
     tui: {
       setShowHardwareCursor(v: boolean) { hw.push(v); },
       requestRender() {},
-      terminal: { write(s: string) { writes.push(s); } },
+      terminal,
     },
   };
 }
