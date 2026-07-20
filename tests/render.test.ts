@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CURSOR_MARKER } from "@earendil-works/pi-tui";
 import { transformFocused, transformUnfocused } from "../lib/render.ts";
-import { DEFAULT_CONFIG } from "../lib/defaults.ts";
+import { DEFAULT_CONFIG, type CursorConfig } from "../lib/defaults.ts";
 
 // Mock theme returning the v0.1 256-color codes so the existing assertions
 // (which encode 38;5;7 / 38;5;8) stay valid under the theme-threaded signature.
@@ -121,14 +121,34 @@ test("hardware focused: bare char (marker kept, reverse-video dropped)", () => {
 // --- v0.2.0 (A): cursorColor hex override ---
 test("cursorColor hex override flows to focused bar", () => {
   const theme = { getFgAnsi: () => "\x1b[38;2;0;0;0m", getColorMode: () => "truecolor" as const };
-  const cfg = { ...DEFAULT_CONFIG, focusedStyle: "bar", cursorColor: "#ff5555" };
+  const cfg: CursorConfig = { ...DEFAULT_CONFIG, focusedStyle: "bar", cursorColor: "#ff5555" };
   const out = transformFocused([line("f")], cfg, theme as any, true, "fake");
   assert.ok(out[0]!.includes("\x1b[38;2;255;85;85m"), "hex override used");
 });
 
 test("cursorColor hex override flows to unfocused hollow (dimmed)", () => {
   const theme = { getFgAnsi: () => "\x1b[38;2;0;0;0m", getColorMode: () => "truecolor" as const };
-  const cfg = { ...DEFAULT_CONFIG, unfocusedStyle: "hollow", cursorColor: "#cba6f7" };
+  const cfg: CursorConfig = { ...DEFAULT_CONFIG, unfocusedStyle: "hollow", cursorColor: "#cba6f7" };
   const out = transformUnfocused([line("f")], cfg, theme as any);
   assert.ok(out[0]!.includes("\x1b[38;2;101;83;123m"), "dimmed hex used (#cba6f7 → 101;83;123)");
+});
+
+// --- v0.2.0 (B): highlight unfocused style (char-preserving undercurl) ---
+test("unfocused highlight: truecolor undercurl + colored underline, char preserved", () => {
+  const theme = { getFgAnsi: (c: string) => (c === "dim" ? "\x1b[38;2;88;91;112m" : ""), getColorMode: () => "truecolor" as const };
+  const cfg: CursorConfig = { ...DEFAULT_CONFIG, unfocusedStyle: "highlight" };
+  const out = transformUnfocused([line("f")], cfg, theme as any);
+  assert.ok(out[0]!.includes("f"), "char preserved");
+  assert.ok(out[0]!.includes("\x1b[4:3m"), "undercurl");
+  assert.ok(out[0]!.includes("\x1b[58:2::88:91:112m"), "colored underline (RGB from dim)");
+});
+
+test("unfocused highlight: 256-color fallback = plain colored underline, char preserved", () => {
+  const theme = { getFgAnsi: (c: string) => (c === "dim" ? "\x1b[38;5;8m" : ""), getColorMode: () => "256color" as const };
+  const cfg: CursorConfig = { ...DEFAULT_CONFIG, unfocusedStyle: "highlight" };
+  const out = transformUnfocused([line("f")], cfg, theme as any);
+  assert.ok(out[0]!.includes("f"), "char preserved");
+  assert.ok(out[0]!.includes("\x1b[4m"), "plain underline");
+  assert.ok(!out[0]!.includes("\x1b[4:3m"), "no undercurl in 256 mode");
+  assert.ok(out[0]!.includes("\x1b[38;5;8m"), "256 fg color");
 });

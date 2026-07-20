@@ -113,10 +113,15 @@ function unfocusedCell(style: UnfocusedStyle, ch: string, colorAnsi: string, tru
       return `\x1b[4;2m${ch}\x1b[0m`;
     case "hide":
       return ch;
-    case "highlight":
-      // char-preserving colored styled underline (T5 fills the full impl;
-      // here it's a plain colored underline placeholder that T5 upgrades).
-      return `${colorAnsi}\x1b[4m${ch}\x1b[0m`;
+    case "highlight": {
+      // Char-preserving colored styled underline. Truecolor: undercurl (4:3) +
+      // colored underline (58:2::R:G:B). 256-color: plain underline + 256 fg.
+      if (!truecolor) return `${colorAnsi}\x1b[4m${ch}\x1b[0m`;
+      const m = /^\x1b\[38;2;(\d+);(\d+);(\d+)m$/.exec(colorAnsi);
+      if (!m) return `${colorAnsi}\x1b[4m${ch}\x1b[0m`;
+      const rgb = `${m[1]}:${m[2]}:${m[3]}`;
+      return `\x1b[4:3m\x1b[58:2::${rgb}m${ch}\x1b[0m`;
+    }
   }
 }
 
