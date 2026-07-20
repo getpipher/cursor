@@ -163,3 +163,22 @@ test("restoreCursor resets DECSCUSR + OSC 12 + hides hardware cursor", () => {
   assert.ok(m.writes.some((w) => w.includes("\x1b[0 q")), "DECSCUSR reset to default");
   assert.ok(m.writes.some((w) => w.includes("\x1b]12;\x07")), "OSC 12 reset");
 });
+
+test("hardware mode unfocused: setShowHardwareCursor(false) on focus loss", () => {
+  const { ed, m } = makeHwEditor({ cursorMode: "hardware" });
+  // initial focused → hw on; now lose focus
+  m.hw.length = 0;
+  ed.setFocus(false);
+  assert.ok(m.hw.includes(false), "hardware cursor hidden when unfocused");
+  assert.ok(m.writes.some((w) => w.includes("\x1b[0 q")), "DECSCUSR reset to default when unfocused");
+});
+
+test("hardware mode refocus: setShowHardwareCursor(true) + DECSCUSR re-emitted", () => {
+  const { ed, m } = makeHwEditor({ cursorMode: "hardware", focusedStyle: "underline" });
+  ed.setFocus(false); // lose
+  m.hw.length = 0;
+  m.writes.length = 0;
+  ed.setFocus(true); // regain
+  assert.ok(m.hw.includes(true), "hardware cursor shown on refocus");
+  assert.ok(m.writes.some((w) => w.includes("\x1b[4 q")), "DECSCUSR underline re-emitted on refocus");
+});

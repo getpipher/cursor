@@ -134,6 +134,7 @@ export default function (pi: ExtensionAPI): void {
   pi.on("session_shutdown", async () => {
     configWatcher?.close();
     configWatcher = undefined;
+    editor?.restoreCursor?.();
     await provider?.stop();
     provider = null;
     blink?.stop();
