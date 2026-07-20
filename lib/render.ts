@@ -49,6 +49,8 @@ function unfocusedCell(style: UnfocusedStyle, ch: string): string {
       return `\x1b[4;2m${ch}\x1b[0m`;
     case "hide":
       return ch;
+    case "highlight":
+      return ch; // placeholder — T5 upgrades to undercurl + colored underline
   }
 }
 

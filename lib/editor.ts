@@ -36,6 +36,8 @@ export class CursorEditor extends CustomEditor {
       blink: false,
       blinkRate: 600,
       focusProvider: "auto",
+      cursorColor: "accent",
+      cursorMode: "fake",
     };
   }
 
