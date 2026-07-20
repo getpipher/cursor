@@ -37,7 +37,7 @@ function makeEditor(wrappedRender: (w: number) => string[]) {
   const wrapped = { render: wrappedRender, handleInput: (_d: string) => {} };
   const tui = { requestRender: () => {} };
   const theme = THEME;
-  const ed = new CursorEditor(tui as any, theme as any, {} as any, { wrapped: wrapped as any, blink });
+  const ed = new CursorEditor(tui as any, theme as any, {} as any, { wrapped: wrapped as any, blink, getTheme: () => theme });
   ed.updateConfig(DEFAULT_CONFIG);
   return { ed, wrapped };
 }
@@ -116,7 +116,7 @@ function makeHwEditor(cfg: Partial<CursorConfig> = {}) {
   const m = mockTui();
   const blink = new BlinkController(noopScheduler);
   const wrapped = { render: () => [""], handleInput: (_d: string) => {} };
-  const ed = new CursorEditor(m.tui as any, HW_THEME as any, {} as any, { wrapped: wrapped as any, blink });
+  const ed = new CursorEditor(m.tui as any, HW_THEME as any, {} as any, { wrapped: wrapped as any, blink, getTheme: () => HW_THEME });
   ed.updateConfig({ ...DEFAULT_CONFIG, ...cfg });
   return { ed, m, blink };
 }
@@ -135,7 +135,7 @@ test("hardware mode: blink on → blinking DECSCUSR + BlinkController stopped", 
   const origStop = blink.stop.bind(blink);
   blink.stop = () => { stopped++; origStop(); };
   const wrapped = { render: () => [""], handleInput: (_d: string) => {} };
-  const ed = new CursorEditor(m.tui as any, HW_THEME as any, {} as any, { wrapped: wrapped as any, blink });
+  const ed = new CursorEditor(m.tui as any, HW_THEME as any, {} as any, { wrapped: wrapped as any, blink, getTheme: () => HW_THEME });
   ed.updateConfig({ ...DEFAULT_CONFIG, cursorMode: "hardware", blink: true, focusedStyle: "underline" });
   assert.ok(m.writes.some((w) => w.includes("\x1b[3 q")), "blinking underline DECSCUSR");
   assert.ok(stopped >= 1, "blink.stop called (native blink replaces fake blink)");
@@ -151,7 +151,7 @@ test("hardware mode: 256-color theme → OSC 12 skipped (no exact hex)", () => {
   const blink = new BlinkController(noopScheduler);
   const wrapped = { render: () => [""], handleInput: (_d: string) => {} };
   const theme256 = { getFgAnsi: () => "\x1b[38;5;7m", getColorMode: () => "256color" as const };
-  const ed = new CursorEditor(m.tui as any, theme256 as any, {} as any, { wrapped: wrapped as any, blink });
+  const ed = new CursorEditor(m.tui as any, theme256 as any, {} as any, { wrapped: wrapped as any, blink, getTheme: () => theme256 });
   ed.updateConfig({ ...DEFAULT_CONFIG, cursorMode: "hardware" });
   assert.ok(!m.writes.some((w) => w.includes("\x1b]12;")), "OSC 12 skipped in 256 mode");
 });
