@@ -15,8 +15,10 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 ## Features
 
 - **Focused styles:** `block` (pi native, default), `bar` (▎), `underline`.
-- **Unfocused styles:** `hollow` (□ sharp hollow block, default), `outline` (▢ rounded), `dim` (faint block), `underline`, `hide`.
-- **Blink** (opt-in, default off) — pauses when the pane is unfocused.
+- **Unfocused styles:** `hollow` (□ sharp hollow block, default), `outline` (▢ rounded), `dim` (faint block), `underline`, `hide`, **`highlight`** (char-preserving colored undercurl).
+- **Cursor color** (v0.2.0): `accent` (follows the pi theme, truecolor) or an explicit `#RRGGBB`.
+- **Cursor mode** (v0.2.0): `fake` (pi's fake cursor, default) or `hardware` (native terminal cursor via DECSCUSR + OSC 12 — Ghostty-targeted).
+- **Blink** (opt-in, default off) — pauses when the pane is unfocused. In `hardware` mode, native DECSCUSR blink replaces the fake blink.
 - **Focus detection** via a pluggable `FocusProvider`:
   - **tmux** — pane-focus-in/out hooks + `fs.watch` (push).
   - **cmux** — cmux v2 socket API `debug.terminal.is_focused` RPC (poll).
@@ -30,9 +32,11 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 /cursor                      # open the settings panel (TUI) or print status
 /cursor on | off             # master switch
 /cursor focused block|bar|underline
-/cursor unfocused dim|hollow|outline|underline|hide
+/cursor unfocused dim|hollow|outline|underline|hide|highlight
 /cursor blink on [ms] | off  # ms ∈ {400,500,600,800,1000}
 /cursor provider auto|tmux|cmux|herdr|static
+/cursor color accent|#RRGGBB
+/cursor mode fake|hardware
 /cursor status               # print config + active provider + detected env
 /cursor reset                # reset to defaults (also: `r` in the panel)
 ```
@@ -70,9 +74,22 @@ No multiplexer detected (bare Ghostty/Kitty/iTerm2/Alacritty, or unknown). The c
 
 > **Bare-terminal focus detection (DEC 1004) is not in v0.1** — pi 0.80.x doesn't enable `?1004h` or parse `\x1b[I`/`\x1b[O`. Tracked for a later release.
 
+## Cursor color (v0.2.0)
+
+`/cursor color accent|#RRGGBB`. `accent` (default) resolves the cursor color from pi's loaded theme via `theme.getFgAnsi("accent")` — truecolor end-to-end through tmux (`Tc`) on capable stacks (Ghostty + tmux). An explicit `#RRGGBB` override emits `\x1b[38;2;R;G;Bm` directly. The unfocused color is derived automatically: `accent` → the theme's `dim` color; a hex → the same hex dimmed 50%.
+
+## Cursor modes (v0.2.0)
+
+`/cursor mode fake|hardware` (default `fake`).
+
+- **`fake`** — pi's render-transformed fake cursor (the v0.1 path). All focused + unfocused styles apply.
+- **`hardware`** — drives the terminal's *native* cursor for the focused state: DECSCUSR (`\x1b[<n> q`) sets the shape (block/underline/bar), OSC 12 (`\x1b]12;<color>\x07`) sets the color, and pi positions the real cursor via `tui.setShowHardwareCursor(true)`. The focused cell renders as a bare char so only the native cursor shows. On focus loss the hardware cursor is hidden and the unfocused fake-cursor transform takes over (with the cursor color + any unfocused style incl. `highlight`). On `session_shutdown` the terminal cursor is restored to its default shape/color (no state leak).
+
+> **⚠️ v0.2.0 hardware mode + truecolor are built from the pi-tui source + spec, unit-tested against mocks, but not verified against a live Ghostty+tmux pane in this release.** Hardware mode is Ghostty-targeted (DECSCUSR + OSC 12 are standard but only verified on Ghostty here); other terminals get the `fake` default. In 256-color theme mode, OSC 12 is skipped (no exact hex) and the terminal uses its configured cursor color. See `lib/editor.ts` + `lib/render.ts`.
+
 ## The char-hidden constraint
 
-A fake cursor *is* the cell — ANSI has no partial-cell overlay. So the **`bar`** (focused) and **`hollow`**/**`outline`** (unfocused) styles render a glyph that **hides the character at the cursor position** while the cursor sits on it; the character reappears when the cursor moves. This is a terminal limitation, not a bug. `block`, `underline`, `dim`, and `hide` preserve the character.
+A fake cursor *is* the cell — ANSI has no partial-cell overlay. So the **`bar`** (focused) and **`hollow`**/**`outline`** (unfocused) styles render a glyph that **hides the character at the cursor position** while the cursor sits on it; the character reappears when the cursor moves. This is a terminal limitation, not a bug. `block`, `underline`, `dim`, `hide`, and **`highlight`** (char-preserving colored undercurl) preserve the character. In `hardware` mode the focused state uses the native terminal cursor (no fake cell), sidestepping this entirely.
 
 ## Compatibility
 
