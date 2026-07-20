@@ -13,7 +13,7 @@ test("panel rows cover all config keys in order", () => {
   const rows = panelRows(DEFAULT_CONFIG, "static");
   assert.deepEqual(
     rows.map((r) => r.id),
-    ["enabled", "focusedStyle", "unfocusedStyle", "blink", "blinkRate", "focusProvider", "activeProvider"],
+    ["enabled", "focusedStyle", "unfocusedStyle", "blink", "blinkRate", "focusProvider", "cursorColor", "cursorMode", "activeProvider"],
   );
 });
 
@@ -52,6 +52,16 @@ test("applyRowChange blink + blinkRate", () => {
 
 test("applyRowChange focusProvider", () => {
   assert.equal(applyRowChange(DEFAULT_CONFIG, "focusProvider", "tmux").focusProvider, "tmux");
+});
+
+test("applyRowChange cursorMode hardware", () => {
+  assert.equal(applyRowChange(DEFAULT_CONFIG, "cursorMode", "hardware").cursorMode, "hardware");
+});
+
+test("applyRowChange cursorColor accepts hex + accent, rejects junk", () => {
+  assert.equal(applyRowChange(DEFAULT_CONFIG, "cursorColor", "#cba6f7").cursorColor, "#cba6f7");
+  assert.equal(applyRowChange({ ...DEFAULT_CONFIG, cursorColor: "#cba6f7" }, "cursorColor", "accent").cursorColor, "accent");
+  assert.equal(applyRowChange(DEFAULT_CONFIG, "cursorColor", "junk").cursorColor, "accent");
 });
 
 test("activeProvider applyRowChange is a no-op (read-only)", () => {

@@ -15,10 +15,12 @@ import {
   UNFOCUSED_STYLES,
   BLINK_RATES,
   FOCUS_PROVIDERS,
+  CURSOR_MODES,
   type CursorConfig,
   type FocusedStyle,
   type UnfocusedStyle,
   type FocusProviderName,
+  type CursorMode,
 } from "../lib/defaults.ts";
 import type { FSWatcher } from "node:fs";
 import { loadConfig, saveConfigTracked, watchConfig } from "../lib/config.ts";
@@ -69,6 +71,14 @@ export function parseCursorArgs(args: string[], _cfg: CursorConfig): CursorArgs 
     case "provider":
       if (!FOCUS_PROVIDERS.includes(b as FocusProviderName)) throw new Error(`Usage: /cursor provider ${FOCUS_PROVIDERS.join("|")}`);
       return { action: "set", patch: { focusProvider: b as FocusProviderName } };
+    case "color": {
+      if (b === "accent") return { action: "set", patch: { cursorColor: "accent" } };
+      if (b !== undefined && /^#[0-9a-fA-F]{6}$/.test(b)) return { action: "set", patch: { cursorColor: b } };
+      throw new Error(`Usage: /cursor color accent|#RRGGBB`);
+    }
+    case "mode":
+      if (!CURSOR_MODES.includes(b as CursorMode)) throw new Error(`Usage: /cursor mode ${CURSOR_MODES.join("|")}`);
+      return { action: "set", patch: { cursorMode: b as CursorMode } };
     default:
       return { action: "usage" };
   }
@@ -197,9 +207,9 @@ export default function (pi: ExtensionAPI): void {
         const getCfg = () => cfg;
         const getBlinkVisible = () => (cfg.blink ? blink?.visible ?? true : true);
         container.addChild(new Text(theme.fg("dim", "focused:"), 0, 0));
-        container.addChild(previewLine(getCfg, true, getBlinkVisible) as any);
+        container.addChild(previewLine(getCfg, true, getBlinkVisible, () => theme) as any);
         container.addChild(new Text(theme.fg("dim", "unfocused:"), 0, 0));
-        container.addChild(previewLine(getCfg, false) as any);
+        container.addChild(previewLine(getCfg, false, undefined, () => theme) as any);
         container.addChild(new Spacer(1));
         container.addChild(settingsList);
         container.addChild(new Text(theme.fg("dim", "↑↓ navigate • enter edit/cycle • r reset • esc done"), 0, 0));

@@ -38,6 +38,20 @@ test("provider auto|tmux|herdr|static", () => {
   assert.throws(() => parseCursorArgs(["provider", "bogus"], DEFAULT_CONFIG));
 });
 
+test("color accent|#hex", () => {
+  assert.deepEqual(parseCursorArgs(["color", "accent"], DEFAULT_CONFIG), { action: "set", patch: { cursorColor: "accent" } });
+  assert.deepEqual(parseCursorArgs(["color", "#cba6f7"], DEFAULT_CONFIG), { action: "set", patch: { cursorColor: "#cba6f7" } });
+  assert.throws(() => parseCursorArgs(["color", "#xyz"], DEFAULT_CONFIG), /Usage/);
+  assert.throws(() => parseCursorArgs(["color"], DEFAULT_CONFIG), /Usage/);
+});
+
+test("mode fake|hardware", () => {
+  assert.deepEqual(parseCursorArgs(["mode", "hardware"], DEFAULT_CONFIG), { action: "set", patch: { cursorMode: "hardware" } });
+  assert.deepEqual(parseCursorArgs(["mode", "fake"], DEFAULT_CONFIG), { action: "set", patch: { cursorMode: "fake" } });
+  assert.throws(() => parseCursorArgs(["mode", "weird"], DEFAULT_CONFIG), /Usage/);
+  assert.throws(() => parseCursorArgs(["mode"], DEFAULT_CONFIG), /Usage/);
+});
+
 test("status → status", () => {
   assert.deepEqual(parseCursorArgs(["status"], DEFAULT_CONFIG), { action: "status" });
 });
