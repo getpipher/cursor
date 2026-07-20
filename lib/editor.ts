@@ -1,6 +1,6 @@
 import { CustomEditor } from "@earendil-works/pi-coding-agent";
-import { transformFocused, transformUnfocused } from "./render.ts";
-import type { CursorConfig, CursorMode } from "./defaults.ts";
+import { transformFocused, transformUnfocused, decscusr, osc12, themeAccentHex } from "./render.ts";
+import type { CursorConfig, CursorMode, FocusedStyle } from "./defaults.ts";
 import { BlinkController } from "./state.ts";
 
 type Theme = { getFgAnsi(color: string): string; getColorMode(): "truecolor" | "256color" };
@@ -48,15 +48,51 @@ export class CursorEditor extends CustomEditor {
 
   updateConfig(cfg: CursorConfig): void {
     this.cfg = cfg;
+    this.applyCursorMode();
     this.invalidate?.();
+    this.tui?.requestRender?.();
   }
 
   setFocus(focused: boolean): void {
     if (this.paneFocused === focused) return;
     this.paneFocused = focused;
     this.deps.blink.setActive(focused);
+    this.applyCursorMode();
     this.invalidate?.();
     this.tui?.requestRender?.();
+  }
+
+  /** Emit DECSCUSR/OSC12 + toggle the hardware cursor for the current mode/focus. */
+  private applyCursorMode(): void {
+    const hw = this.cfg.cursorMode === "hardware" && this.paneFocused;
+    this.tui?.setShowHardwareCursor?.(hw);
+    if (hw) {
+      // native blink replaces the fake-cursor blink controller
+      this.deps.blink.stop();
+      const shape: "block" | "underline" | "bar" =
+        this.cfg.focusedStyle === "underline" ? "underline" :
+        this.cfg.focusedStyle === "bar" ? "bar" : "block";
+      this.writeTerm(decscusr(shape, this.cfg.blink));
+      const hex = this.cfg.cursorColor === "accent" ? themeAccentHex(this.cursorTheme) : this.cfg.cursorColor;
+      const osc = osc12(hex);
+      if (osc) this.writeTerm(osc);
+    } else {
+      // fake mode (or hardware-unfocused): reset to the terminal's default shape
+      this.writeTerm("\x1b[0 q");
+    }
+  }
+
+  /** Write a raw escape sequence to the terminal (via pi-tui's TUI.terminal.write). */
+  private writeTerm(seq: string): void {
+    const t = this.tui as any;
+    (t?.terminal?.write ?? t?.write)?.(seq);
+  }
+
+  /** Restore the terminal's default cursor (call on session_shutdown). */
+  restoreCursor(): void {
+    this.tui?.setShowHardwareCursor?.(false);
+    this.writeTerm("\x1b[0 q");
+    this.writeTerm("\x1b]12;\x07");
   }
 
   /** Called by the BlinkController on each toggle so the editor re-renders. */

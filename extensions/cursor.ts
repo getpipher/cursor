@@ -86,7 +86,8 @@ export default function (pi: ExtensionAPI): void {
   function restartBlink(): void {
     if (!blink || !editor) return;
     blink.stop();
-    if (cfg.blink) blink.start(cfg.blinkRate, () => editor!.onBlinkToggle());
+    // In hardware mode the native DECSCUSR blink drives the cursor; don't run the fake blink.
+    if (cfg.blink && cfg.cursorMode !== "hardware") blink.start(cfg.blinkRate, () => editor!.onBlinkToggle());
   }
 
   async function restartProvider(): Promise<void> {
@@ -119,7 +120,8 @@ export default function (pi: ExtensionAPI): void {
       const ed = new CursorEditor(tui, theme, keybindings, { wrapped, blink: blinkController });
       editor = ed;
       ed.updateConfig(cfg);
-      if (cfg.blink) blinkController.start(cfg.blinkRate, () => ed.onBlinkToggle());
+      // In hardware mode the native DECSCUSR blink drives the cursor; don't run the fake blink.
+      if (cfg.blink && cfg.cursorMode !== "hardware") blinkController.start(cfg.blinkRate, () => ed.onBlinkToggle());
       return ed;
     });
     provider = await createProvider(cfg.focusProvider, (focused) => editor?.setFocus(focused));
