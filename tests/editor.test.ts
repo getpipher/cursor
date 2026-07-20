@@ -161,7 +161,7 @@ test("restoreCursor resets DECSCUSR + OSC 12 + hides hardware cursor", () => {
   ed.restoreCursor();
   assert.ok(m.hw.includes(false), "hardware cursor hidden on restore");
   assert.ok(m.writes.some((w) => w.includes("\x1b[0 q")), "DECSCUSR reset to default");
-  assert.ok(m.writes.some((w) => w.includes("\x1b]12;\x07")), "OSC 12 reset");
+  assert.ok(m.writes.some((w) => w.includes("\x1b]112\x07")), "OSC 112 reset cursor color to default");
 });
 
 test("hardware mode unfocused: setShowHardwareCursor(false) on focus loss", () => {

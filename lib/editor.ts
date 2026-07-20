@@ -1,6 +1,6 @@
 import { CustomEditor } from "@earendil-works/pi-coding-agent";
 import { transformFocused, transformUnfocused, decscusr, osc12, themeAccentHex } from "./render.ts";
-import type { CursorConfig, CursorMode, FocusedStyle } from "./defaults.ts";
+import type { CursorConfig, CursorMode } from "./defaults.ts";
 import { BlinkController } from "./state.ts";
 
 type Theme = { getFgAnsi(color: string): string; getColorMode(): "truecolor" | "256color" };
@@ -91,8 +91,8 @@ export class CursorEditor extends CustomEditor {
   /** Restore the terminal's default cursor (call on session_shutdown). */
   restoreCursor(): void {
     this.tui?.setShowHardwareCursor?.(false);
-    this.writeTerm("\x1b[0 q");
-    this.writeTerm("\x1b]12;\x07");
+    this.writeTerm("\x1b[0 q");      // default cursor shape (DECSCUSR reset)
+    this.writeTerm("\x1b]112\x07");  // OSC 112: reset cursor color to terminal default
   }
 
   /** Called by the BlinkController on each toggle so the editor re-renders. */
