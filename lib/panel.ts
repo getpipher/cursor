@@ -5,10 +5,12 @@ import {
   UNFOCUSED_STYLES,
   BLINK_RATES,
   FOCUS_PROVIDERS,
+  CURSOR_MODES,
   type CursorConfig,
   type FocusedStyle,
   type UnfocusedStyle,
   type FocusProviderName,
+  type CursorMode,
 } from "./defaults.ts";
 import { transformFocused, transformUnfocused } from "./render.ts";
 
@@ -56,7 +58,21 @@ export function panelRows(cfg: CursorConfig, activeProviderLabel: string): Setti
       label: "Focus provider",
       currentValue: cfg.focusProvider,
       values: [...FOCUS_PROVIDERS],
-      description: "auto = detect (tmux > herdr > static). Manual override available.",
+      description: "auto = detect (tmux > cmux > herdr > static). Manual override available.",
+    },
+    {
+      id: "cursorColor",
+      label: "Cursor color",
+      currentValue: cfg.cursorColor,
+      values: ["accent", cfg.cursorColor === "accent" ? "accent" : cfg.cursorColor],
+      description: "accent follows the pi theme; or set #RRGGBB via /cursor color.",
+    },
+    {
+      id: "cursorMode",
+      label: "Cursor mode",
+      currentValue: cfg.cursorMode,
+      values: [...CURSOR_MODES],
+      description: "fake = pi's fake cursor (default). hardware = native terminal cursor (Ghostty).",
     },
     {
       id: "activeProvider",
@@ -82,6 +98,10 @@ export function applyRowChange(cfg: CursorConfig, id: string, newValue: string):
       return { ...cfg, blinkRate: Number(newValue) };
     case "focusProvider":
       return { ...cfg, focusProvider: newValue as FocusProviderName };
+    case "cursorColor":
+      return { ...cfg, cursorColor: newValue === "accent" || /^#[0-9a-fA-F]{6}$/.test(newValue) ? newValue : cfg.cursorColor };
+    case "cursorMode":
+      return { ...cfg, cursorMode: newValue as CursorMode };
     default:
       return cfg; // activeProvider is read-only
   }
@@ -97,16 +117,20 @@ export function previewLine(
   getCfg: () => CursorConfig,
   focused: boolean,
   getBlinkVisible?: () => boolean,
+  getTheme?: () => { getFgAnsi(color: string): string; getColorMode(): "truecolor" | "256color" },
 ): Component {
+  // Fallback no-color theme so previewLine works without a theme (T8 threads the real one).
+  const fallbackTheme = { getFgAnsi: () => "", getColorMode: () => "256color" as const };
   const sample = `const result = await fetch(url);${CURSOR_MARKER}\x1b[7m \x1b[0m`;;
   return {
     render(_width: number): string[] {
       const cfg = getCfg();
+      const theme = getTheme ? getTheme() : fallbackTheme;
       if (focused) {
         const blinkVisible = getBlinkVisible ? getBlinkVisible() : true;
-        return transformFocused([sample], cfg, blinkVisible);
+        return transformFocused([sample], cfg, theme, blinkVisible, cfg.cursorMode);
       }
-      return transformUnfocused([sample], cfg);
+      return transformUnfocused([sample], cfg, theme);
     },
     invalidate() {},
   };
@@ -119,5 +143,7 @@ export function rowDisplayValue(id: string, cfg: CursorConfig): string {
   if (id === "focusedStyle") return cfg.focusedStyle;
   if (id === "unfocusedStyle") return cfg.unfocusedStyle;
   if (id === "focusProvider") return cfg.focusProvider;
+  if (id === "cursorColor") return cfg.cursorColor;
+  if (id === "cursorMode") return cfg.cursorMode;
   return cfg[id as keyof CursorConfig]?.toString() ?? "";
 }

@@ -40,3 +40,45 @@ test("cycleValue wraps within enum", () => {
   assert.equal(cycleValue(DEFAULT_CONFIG, "blinkRate").blinkRate, 800);
   assert.equal(cycleValue(DEFAULT_CONFIG, "focusProvider").focusProvider, "tmux");
 });
+
+test("normalizeConfig accepts cursorColor accent + hex + cursorMode + highlight", () => {
+  const { config } = normalizeConfig({
+    cursorColor: "#cba6f7",
+    cursorMode: "hardware",
+    unfocusedStyle: "highlight",
+  });
+  assert.equal(config.cursorColor, "#cba6f7");
+  assert.equal(config.cursorMode, "hardware");
+  assert.equal(config.unfocusedStyle, "highlight");
+});
+
+test("normalizeConfig full valid v0.2.0 config → fixed=false", () => {
+  const { fixed } = normalizeConfig({
+    enabled: true,
+    focusedStyle: "block",
+    unfocusedStyle: "highlight",
+    blink: false,
+    blinkRate: 600,
+    focusProvider: "auto",
+    cursorColor: "#cba6f7",
+    cursorMode: "hardware",
+  });
+  assert.equal(fixed, false);
+});
+
+test("normalizeConfig rejects bad hex → falls back to accent (fixed=true)", () => {
+  const { config, fixed } = normalizeConfig({ cursorColor: "#xyz" });
+  assert.equal(fixed, true);
+  assert.equal(config.cursorColor, "accent");
+});
+
+test("normalizeConfig rejects unknown cursorMode → fake (fixed=true)", () => {
+  const { config, fixed } = normalizeConfig({ cursorMode: "weird" as any });
+  assert.equal(fixed, true);
+  assert.equal(config.cursorMode, "fake");
+});
+
+test("cycleValue cycles cursorMode fake → hardware → fake", () => {
+  assert.equal(cycleValue({ ...DEFAULT_CONFIG }, "cursorMode").cursorMode, "hardware");
+  assert.equal(cycleValue({ ...DEFAULT_CONFIG, cursorMode: "hardware" as const }, "cursorMode").cursorMode, "fake");
+});

@@ -4,11 +4,16 @@ import { panelRows, applyRowChange, previewLine } from "../lib/panel.ts";
 import { CURSOR_MARKER } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG, type CursorConfig } from "../lib/defaults.ts";
 
+const THEME = {
+  getFgAnsi: (c: string) => (c === "accent" ? "\x1b[38;5;7m" : c === "dim" ? "\x1b[38;5;8m" : ""),
+  getColorMode: () => "256color" as const,
+};
+
 test("panel rows cover all config keys in order", () => {
   const rows = panelRows(DEFAULT_CONFIG, "static");
   assert.deepEqual(
     rows.map((r) => r.id),
-    ["enabled", "focusedStyle", "unfocusedStyle", "blink", "blinkRate", "focusProvider", "activeProvider"],
+    ["enabled", "focusedStyle", "unfocusedStyle", "blink", "blinkRate", "focusProvider", "cursorColor", "cursorMode", "activeProvider"],
   );
 });
 
@@ -49,6 +54,16 @@ test("applyRowChange focusProvider", () => {
   assert.equal(applyRowChange(DEFAULT_CONFIG, "focusProvider", "tmux").focusProvider, "tmux");
 });
 
+test("applyRowChange cursorMode hardware", () => {
+  assert.equal(applyRowChange(DEFAULT_CONFIG, "cursorMode", "hardware").cursorMode, "hardware");
+});
+
+test("applyRowChange cursorColor accepts hex + accent, rejects junk", () => {
+  assert.equal(applyRowChange(DEFAULT_CONFIG, "cursorColor", "#cba6f7").cursorColor, "#cba6f7");
+  assert.equal(applyRowChange({ ...DEFAULT_CONFIG, cursorColor: "#cba6f7" }, "cursorColor", "accent").cursorColor, "accent");
+  assert.equal(applyRowChange(DEFAULT_CONFIG, "cursorColor", "junk").cursorColor, "accent");
+});
+
 test("activeProvider applyRowChange is a no-op (read-only)", () => {
   assert.deepEqual(applyRowChange(DEFAULT_CONFIG, "activeProvider", "tmux"), DEFAULT_CONFIG);
 });
@@ -62,16 +77,16 @@ test("previewLine focused renders the sample with the focused style cursor", () 
   const ul = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "underline" }), true);
   assert.deepEqual(ul.render(80), [`const result = await fetch(url);\x1b[4m \x1b[0m`]);
   // bar → ▎ glyph at line end (no char eaten)
-  const bar = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "bar" }), true);
+  const bar = previewLine(() => ({ ...DEFAULT_CONFIG, focusedStyle: "bar" }), true, undefined, () => THEME);
   assert.deepEqual(bar.render(80), [`const result = await fetch(url);\x1b[38;5;7m▎\x1b[39m`]);
 });
 
 test("previewLine unfocused renders the sample with the unfocused style cursor", () => {
   // hollow (default) → □ sharp hollow block
-  const hollow = previewLine(() => DEFAULT_CONFIG, false);
+  const hollow = previewLine(() => DEFAULT_CONFIG, false, undefined, () => THEME);
   assert.deepEqual(hollow.render(80), [`const result = await fetch(url);\x1b[38;5;8m□\x1b[39m`]);
   // outline → ▢ rounded hollow square
-  const outline = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "outline" }), false);
+  const outline = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "outline" }), false, undefined, () => THEME);
   assert.deepEqual(outline.render(80), [`const result = await fetch(url);\x1b[38;5;8m▢\x1b[39m`]);
   // dim
   const dim = previewLine(() => ({ ...DEFAULT_CONFIG, unfocusedStyle: "dim" }), false);

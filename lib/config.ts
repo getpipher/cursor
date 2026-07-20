@@ -7,10 +7,12 @@ import {
   UNFOCUSED_STYLES,
   BLINK_RATES,
   FOCUS_PROVIDERS,
+  CURSOR_MODES,
   type CursorConfig,
   type FocusedStyle,
   type UnfocusedStyle,
   type FocusProviderName,
+  type CursorMode,
 } from "./defaults.ts";
 
 export const CONFIG_FILENAME = "cursor.json";
@@ -23,6 +25,12 @@ function isUnfocusedStyle(v: unknown): v is UnfocusedStyle {
 }
 function isProvider(v: unknown): v is FocusProviderName {
   return FOCUS_PROVIDERS.includes(v as FocusProviderName);
+}
+function isHexColor(v: unknown): v is string {
+  return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
+}
+function isCursorMode(v: unknown): v is CursorMode {
+  return CURSOR_MODES.includes(v as CursorMode);
 }
 
 export function normalizeConfig(raw: Record<string, unknown>): { config: CursorConfig; fixed: boolean } {
@@ -40,6 +48,10 @@ export function normalizeConfig(raw: Record<string, unknown>): { config: CursorC
   if (typeof r.blinkRate === "number" && BLINK_RATES.includes(r.blinkRate)) cfg.blinkRate = r.blinkRate;
   else fixed = true;
   if (isProvider(r.focusProvider)) cfg.focusProvider = r.focusProvider;
+  else fixed = true;
+  if (r.cursorColor === "accent" || isHexColor(r.cursorColor)) cfg.cursorColor = r.cursorColor;
+  else fixed = true;
+  if (isCursorMode(r.cursorMode)) cfg.cursorMode = r.cursorMode;
   else fixed = true;
   return { config: cfg, fixed };
 }
@@ -62,7 +74,7 @@ export async function saveConfig(cfg: CursorConfig, dir: string): Promise<void> 
   await writeFile(join(dir, CONFIG_FILENAME), JSON.stringify(cfg, null, 2) + "\n", "utf8");
 }
 
-type CycleableKey = "focusedStyle" | "unfocusedStyle" | "blinkRate" | "focusProvider";
+type CycleableKey = "focusedStyle" | "unfocusedStyle" | "blinkRate" | "focusProvider" | "cursorMode";
 export function cycleValue(cfg: CursorConfig, key: CycleableKey): CursorConfig {
   if (key === "focusedStyle") {
     const i = FOCUSED_STYLES.indexOf(cfg.focusedStyle);
@@ -75,6 +87,10 @@ export function cycleValue(cfg: CursorConfig, key: CycleableKey): CursorConfig {
   if (key === "blinkRate") {
     const i = BLINK_RATES.indexOf(cfg.blinkRate);
     return { ...cfg, blinkRate: BLINK_RATES[(i + 1) % BLINK_RATES.length]! };
+  }
+  if (key === "cursorMode") {
+    const i = CURSOR_MODES.indexOf(cfg.cursorMode);
+    return { ...cfg, cursorMode: CURSOR_MODES[(i + 1) % CURSOR_MODES.length]! };
   }
   const i = FOCUS_PROVIDERS.indexOf(cfg.focusProvider);
   return { ...cfg, focusProvider: FOCUS_PROVIDERS[(i + 1) % FOCUS_PROVIDERS.length]! };
