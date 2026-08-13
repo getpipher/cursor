@@ -17,9 +17,9 @@
  *    events.subscribe (long-lived; emits resource events incl. focus changes).
  */
 import { connect, type Socket } from "node:net";
-import { access } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { probeSocket } from "./socket.ts";
 import type { FocusProvider } from "./index.ts";
 
 // ⚠️ ASSUMPTION — confirm via `env | grep -i herdr` inside a herdr pane.
@@ -92,18 +92,26 @@ export class HerdrFocusProvider implements FocusProvider {
     },
   ) {}
 
+  // Liveness, not just existence: a crashed herdr leaves its socket file on
+  // disk, and `access()`-based detection would mistake the stale leftover for
+  // a running server (→ ECONNREFUSED at start()). probeSocket opens a real
+  // connection, so a dead file is rejected at once.
   static async detect(path: string = defaultSocketPath()): Promise<boolean> {
-    try {
-      await access(path);
-      return true;
-    } catch {
-      return false;
-    }
+    return probeSocket(path);
   }
 
   async start(): Promise<void> {
     this.ourPaneId = process.env[OUR_PANE_ENV];
-    this.socket = await this.opts.socket();
+    // Defensive: if the socket is dead/stale (e.g. an explicit `/cursor
+    // provider herdr` pointed at a crashed daemon), swallow the connect
+    // failure and degrade to always-focused — matching cmux's resilience.
+    // Better than throwing in session_start and breaking the whole extension.
+    try {
+      this.socket = await this.opts.socket();
+    } catch {
+      this.socket = undefined;
+      return;
+    }
     this.socket.onMessage((line) => this.handle(line));
     this.send("session.snapshot", {});
     this.send("events.subscribe", { events: SUBSCRIBE_EVENTS });

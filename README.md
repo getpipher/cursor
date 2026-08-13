@@ -58,13 +58,13 @@ If `focus-events` is off, the extension degrades gracefully to static mode and n
 
 ### cmux
 
-Uses cmux's v2 socket API to call the purpose-built `debug.terminal.is_focused` RPC with our surface id (`CMUX_SURFACE_ID`), polled every ~300 ms. The server authoritatively resolves the full window→workspace→pane→surface focus hierarchy, so the client never reconstructs it. Auto-detected when `CMUX_SURFACE_ID` is present and the cmux control socket is reachable (`CMUX_SOCKET_PATH`, or `~/Library/Application Support/cmux/last-socket-path`, or `/tmp/cmux-debug.sock`, or `~/Library/Application Support/cmux/cmux.sock`, or `/tmp/cmux.sock`). Precedence: `tmux` > `cmux` > `herdr` > `static`.
+Uses cmux's v2 socket API to call the purpose-built `debug.terminal.is_focused` RPC with our surface id (`CMUX_SURFACE_ID`), polled every ~300 ms. The server authoritatively resolves the full window→workspace→pane→surface focus hierarchy, so the client never reconstructs it. Auto-detected when `CMUX_SURFACE_ID` is present and the cmux control socket is **live** — a real connection is opened to verify a listener is accepting (`CMUX_SOCKET_PATH`, or `~/Library/Application Support/cmux/last-socket-path`, or `/tmp/cmux-debug.sock`, or `~/Library/Application Support/cmux/cmux.sock`, or `/tmp/cmux.sock`). Precedence: `tmux` > `cmux` > `herdr` > `static`.
 
 > **⚠️ v0.1.1 cmux adapter is built from `manaflow-ai/cmux` source (`tests_v2/cmux.py`, `docs/events.md`, `docs/cli-contract.md`) and unit-tested against a mocked RPC, but not verified against a live cmux session.** The wire envelope, the `debug.terminal.is_focused` method + params + result shape, and the socket-path resolution order are confirmed against the Python client source (not just prose docs). The one assumption: that `CMUX_SURFACE_ID` is always injected into terminal surfaces (cli-contract.md states it is the "Default surface context inside cmux terminals"). Debug-build glob socket discovery (`/tmp/cmux-debug-*.sock`, `cmux*.sock`) is not implemented in v0.1.1. See `lib/focus/cmux.ts`.
 
 ### herdr
 
-Uses herdr's local socket API (`session.snapshot` + `events.subscribe`); auto-detected when the herdr socket is present (`HERDR_SOCKET_PATH`, `HERDR_SESSION`, or `~/.config/herdr/herdr.sock`).
+Uses herdr's local socket API (`session.snapshot` + `events.subscribe`); auto-detected when the herdr socket is **live** — a real connection is opened to verify a listener is accepting (`HERDR_SOCKET_PATH`, `HERDR_SESSION`, or `~/.config/herdr/herdr.sock`). A stale socket file left behind by a crashed/killed herdr is rejected, not mistaken for a running server.
 
 > **⚠️ v0.1 herdr adapter is built from `herdr.dev/docs/socket-api` and unit-tested against a mocked socket, but not verified against a live herdr session.** Three constants (the our-own-pane-id env var, the `events.subscribe` event names, and the focus-event field name) are documented assumptions — confirm/adjust them in a real herdr pane with `env | grep -i herdr` and `herdr api schema --json`. See `lib/focus/herdr.ts`.
 
@@ -86,6 +86,10 @@ No multiplexer detected (bare Ghostty/Kitty/iTerm2/Alacritty, or unknown). The c
 - **`hardware`** — drives the terminal's *native* cursor for the focused state: DECSCUSR (`\x1b[<n> q`) sets the shape (block/underline/bar), OSC 12 (`\x1b]12;<color>\x07`) sets the color, and pi positions the real cursor via `tui.setShowHardwareCursor(true)`. The focused cell renders as a bare char so only the native cursor shows. On focus loss the hardware cursor is hidden and the unfocused fake-cursor transform takes over (with the cursor color + any unfocused style incl. `highlight`). On `session_shutdown` the terminal cursor is restored to its default shape/color (no state leak).
 
 > **⚠️ v0.2.0 hardware mode + truecolor are built from the pi-tui source + spec, unit-tested against mocks, but not verified against a live Ghostty+tmux pane in this release.** Hardware mode is Ghostty-targeted (DECSCUSR + OSC 12 are standard but only verified on Ghostty here); other terminals get the `fake` default. In 256-color theme mode, OSC 12 is skipped (no exact hex) and the terminal uses its configured cursor color. See `lib/editor.ts` + `lib/render.ts`.
+
+## Troubleshooting
+
+- **`error: connect ECONNREFUSED …/herdr.sock` (or `cmux.sock`) on startup** — a multiplexer crashed or was killed and left its socket file behind on disk. v0.2.3+ detects this by probing the socket for a live listener (not just checking the file exists) and silently falls through to the next provider, so the error should not appear. On older versions, remove the stale leftover: `rm ~/.config/herdr/herdr.sock` (herdr recreates it on next start).
 
 ## The char-hidden constraint
 

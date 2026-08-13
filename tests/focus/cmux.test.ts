@@ -159,14 +159,20 @@ test("detect() = false when CMUX_SURFACE_ID set but socket missing", async () =>
   assert.equal(await CmuxFocusProvider.detect(), false);
 });
 
-test("detect() = true when CMUX_SURFACE_ID set and socket path exists", async () => {
-  const { writeFileSync, rmSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const sock = join(tmpdir(), "fake-cmux-cursor.sock");
-  writeFileSync(sock, "");
+test("detect() = true when CMUX_SURFACE_ID set and a LIVE socket is listening", async () => {
+  const { listeningSocket } = await import("./helpers.ts");
+  const s = await listeningSocket("cmux-live");
   process.env.CMUX_SURFACE_ID = "surf-1";
-  process.env.CMUX_SOCKET_PATH = sock;
+  process.env.CMUX_SOCKET_PATH = s.path;
   assert.equal(await CmuxFocusProvider.detect(), true);
-  rmSync(sock, { force: true });
+  await s.close();
+});
+
+test("detect() = false when CMUX_SURFACE_ID set but socket is a stale leftover (no listener)", async () => {
+  const { staleSocketFile } = await import("./helpers.ts");
+  const s = await staleSocketFile("cmux-stale");
+  process.env.CMUX_SURFACE_ID = "surf-1";
+  process.env.CMUX_SOCKET_PATH = s.path;
+  assert.equal(await CmuxFocusProvider.detect(), false);
+  await s.close();
 });

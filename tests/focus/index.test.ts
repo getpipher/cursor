@@ -31,45 +31,47 @@ test("tmux wins over cmux when both envs set", async () => {
   await p.stop();
 });
 
-test("CMUX_SURFACE_ID + socket present → cmux (before herdr)", async () => {
-  const { writeFileSync, rmSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const sock = join(tmpdir(), "fake-cmux-cursor.sock");
-  writeFileSync(sock, "");
+test("CMUX_SURFACE_ID + LIVE socket → cmux (before herdr)", async () => {
+  const { listeningSocket } = await import("./helpers.ts");
+  const s = await listeningSocket("idx-cmux");
   process.env.CMUX_SURFACE_ID = "surf-1";
-  process.env.CMUX_SOCKET_PATH = sock;
+  process.env.CMUX_SOCKET_PATH = s.path;
   const p = await autoDetect(() => {});
   assert.equal(p.name, "cmux");
   await p.stop();
-  rmSync(sock, { force: true });
+  await s.close();
 });
 
-test("cmux wins over herdr when both detectable", async () => {
-  const { writeFileSync, rmSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const sock = join(tmpdir(), "fake-cmux-over-herdr.sock");
-  writeFileSync(sock, "");
+test("cmux wins over herdr when both detectable (live)", async () => {
+  const { listeningSocket } = await import("./helpers.ts");
+  const s = await listeningSocket("idx-cmux-over-herdr");
   process.env.CMUX_SURFACE_ID = "surf-1";
-  process.env.CMUX_SOCKET_PATH = sock;
-  process.env.HERDR_SOCKET_PATH = sock; // same fake socket — herdr would also detect
+  process.env.CMUX_SOCKET_PATH = s.path;
+  process.env.HERDR_SOCKET_PATH = s.path; // same live socket — herdr would also detect
   const p = await autoDetect(() => {});
   assert.equal(p.name, "cmux");
   await p.stop();
-  rmSync(sock, { force: true });
+  await s.close();
 });
 
-test("herdr socket env → herdr (when cmux not present)", async () => {
-  // herdr's detect() checks socket existence; point it at a real file so detect passes.
-  const { writeFileSync, rmSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-  const sock = join(tmpdir(), "fake-herdr-cursor.sock");
-  writeFileSync(sock, "");
-  process.env.HERDR_SOCKET_PATH = sock;
+test("herdr LIVE socket → herdr (when cmux not present)", async () => {
+  const { listeningSocket } = await import("./helpers.ts");
+  const s = await listeningSocket("idx-herdr");
+  process.env.HERDR_SOCKET_PATH = s.path;
   const p = await autoDetect(() => {});
   assert.equal(p.name, "herdr");
   await p.stop();
-  rmSync(sock, { force: true });
+  await s.close();
+});
+
+test("stale herdr socket file (no listener) → falls through to static", async () => {
+  // Regression guard for the reported bug: a crashed herdr leaves its socket
+  // file on disk; detect() must NOT mistake the leftover for a live server.
+  const { staleSocketFile } = await import("./helpers.ts");
+  const s = await staleSocketFile("idx-herdr-stale");
+  process.env.HERDR_SOCKET_PATH = s.path;
+  const p = await autoDetect(() => {});
+  assert.equal(p.name, "static");
+  await p.stop();
+  await s.close();
 });
