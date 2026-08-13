@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HerdrFocusProvider, type HerdrSocket } from "../../lib/focus/herdr.ts";
+import { HerdrFocusProvider, type HerdrSocket, type SocketFactory } from "../../lib/focus/herdr.ts";
 
 // Mock socket: captures sent lines, feeds queued inbound lines to the handler.
 function mockSocket() {
@@ -61,6 +61,39 @@ test("detect() = false when socket file missing", async () => {
   delete process.env.HERDR_SOCKET_PATH;
   delete process.env.HERDR_SESSION;
   assert.equal(await HerdrFocusProvider.detect("/tmp/definitely-missing-herdr-sock"), false);
+});
+
+test("detect() = false when a stale leftover socket file is present (no listener)", async () => {
+  const { staleSocketFile } = await import("./helpers.ts");
+  const s = await staleSocketFile("herdr-stale");
+  assert.equal(await HerdrFocusProvider.detect(s.path), false);
+  await s.close();
+});
+
+test("detect() = true when a live socket is listening", async () => {
+  const { listeningSocket } = await import("./helpers.ts");
+  const s = await listeningSocket("herdr-live");
+  assert.equal(await HerdrFocusProvider.detect(s.path), true);
+  await s.close();
+});
+
+test("start swallows connect failure (stale/explicit dead socket) → no throw, no onChange", async () => {
+  // Explicit `/cursor provider herdr` against a dead socket must degrade to
+  // always-focused rather than breaking session_start with ECONNREFUSED.
+  process.env.HERDR_PANE_ID = "w1:p1";
+  const failingSocket: { socket: SocketFactory; socketPath: string } = {
+    socket: async () => {
+      throw new Error("connect ECONNREFUSED /path/to/herdr.sock");
+    },
+    socketPath: "/path/to/herdr.sock",
+  };
+  let last: boolean | undefined;
+  const p = new HerdrFocusProvider((f) => {
+    last = f;
+  }, failingSocket);
+  await p.start(); // must not throw
+  assert.equal(last, undefined); // stayed focused=true, no onChange
+  await p.stop();
 });
 
 test("no our-pane-id env → falls back to snapshot focused_pane_id as our pane (assume focused at start)", async () => {

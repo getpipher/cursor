@@ -44,6 +44,7 @@ import { connect, type Socket } from "node:net";
 import { access, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { probeSocket } from "./socket.ts";
 import type { FocusProvider } from "./index.ts";
 
 const POLL_MS = 300;
@@ -169,10 +170,14 @@ export class CmuxFocusProvider implements FocusProvider {
     } = {},
   ) {}
 
-  /** Detect: CMUX_SURFACE_ID present AND a resolvable socket exists. */
+  /**
+   * Detect: CMUX_SURFACE_ID present AND the resolved socket is LIVE.
+   * Probes liveness (not mere existence) so a crashed cmux's stale socket
+   * file doesn't get picked and then fail with ECONNREFUSED at start().
+   */
   static async detect(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
     if (!env[OUR_SURFACE_ENV]) return false;
-    return pathExists(await resolveSocketPath(env));
+    return probeSocket(await resolveSocketPath(env));
   }
 
   async start(): Promise<void> {
