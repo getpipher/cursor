@@ -14,6 +14,7 @@ Then `/reload` (or restart pi) and run `/cursor` to open the settings panel.
 
 ## Features
 
+- **Native working rule** (v0.2.4): while the agent streams, the editor's top border renders as pi's native `── ⠸ Working ──…` label-in-rule (braille spinner, accent/muted themed) — restoring the default-editor chrome that custom editors lose, with pi's separate bare loader hidden to avoid duplication.
 - **Focused styles:** `block` (pi native, default), `bar` (▎), `underline`.
 - **Unfocused styles:** `hollow` (□ sharp hollow block, default), `outline` (▢ rounded), `dim` (faint block), `underline`, `hide`, **`highlight`** (char-preserving colored undercurl).
 - **Cursor color** (v0.2.0): `accent` (follows the pi theme, truecolor) or an explicit `#RRGGBB`.

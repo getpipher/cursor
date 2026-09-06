@@ -125,6 +125,10 @@ export default function (pi: ExtensionAPI): void {
     prevEditorFactory = ctx.ui.getEditorComponent?.() ?? null;
     const blinkController = new BlinkController();
     blink = blinkController;
+    // #6: cursor's custom editor replaces the default editor, which loses pi's native
+    // `── ⠸ Working ──…` border rule — so cursor draws it (editor.setStreaming) and hides
+    // pi's separate bare loader line to avoid duplication.
+    ctx.ui.setWorkingVisible(false);
     ctx.ui.setEditorComponent((tui: any, theme: any, keybindings: any) => {
       const wrapped = prevEditorFactory ? prevEditorFactory(tui, theme, keybindings) : null;
       const ed = new CursorEditor(tui, theme, keybindings, { wrapped, blink: blinkController, getTheme: () => ctx.ui.theme });
@@ -141,9 +145,20 @@ export default function (pi: ExtensionAPI): void {
     });
   });
 
+  pi.on("agent_start", async () => {
+    editor?.setStreaming(true);
+  });
+  pi.on("agent_end", async () => {
+    editor?.setStreaming(false);
+  });
+  pi.on("agent_settled", async () => {
+    editor?.setStreaming(false);
+  });
+
   pi.on("session_shutdown", async () => {
     configWatcher?.close();
     configWatcher = undefined;
+    editor?.setStreaming(false);
     editor?.restoreCursor?.();
     await provider?.stop();
     provider = null;
