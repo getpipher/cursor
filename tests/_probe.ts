@@ -1,0 +1,12 @@
+import { CursorEditor } from "../lib/editor.ts";
+import { DEFAULT_CONFIG } from "../lib/defaults.ts";
+console.log("imports done");
+const THEME: any = { getFgAnsi: (c: string) => (c === "accent" ? "\x1b[38;5;7m" : c === "muted" ? "\x1b[38;5;8m" : ""), getColorMode: () => "256color" as const, borderColor: (s: string) => `\x1b[38;5;8m${s}\x1b[0m`, fg: (c: string, s: string) => s };
+console.log("constructing…");
+const ed = new CursorEditor({ requestRender: () => {}, terminal: { rows: 40 } } as any, THEME, {} as any, { wrapped: null, blink: { setActive: () => {}, visible: true, stop: () => {}, start: () => {} } as any, getTheme: () => THEME });
+console.log("constructed");
+ed.updateConfig(DEFAULT_CONFIG);
+console.log("config applied, rendering…");
+const out = ed.render(80);
+console.log("rendered:", JSON.stringify(out.slice(0, 1)));
+process.exit(0);
